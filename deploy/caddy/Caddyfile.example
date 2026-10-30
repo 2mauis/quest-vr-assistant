@@ -1,0 +1,37 @@
+# 待 VPS 改版更新
+# Caddy v2；示例域名须在私有部署配置替换。
+vr.example.com {
+    tls {
+        issuer acme {
+            # 使用 ACME issuer 默认的 Let's Encrypt 生产目录。
+        }
+    }
+
+    @mcp path /mcp /mcp/*
+    handle @mcp {
+        reverse_proxy localhost:8787 {
+            flush_interval -1
+        }
+    }
+
+    @ws path /ws
+    handle @ws {
+        reverse_proxy localhost:8787 {
+            stream_timeout 24h
+            stream_close_delay 5m
+        }
+    }
+
+    @device path /api/device/pair /api/device/session
+    handle @device {
+        reverse_proxy localhost:8787
+    }
+
+    handle /healthz {
+        reverse_proxy localhost:8787
+    }
+
+    handle {
+        respond "未找到" 404
+    }
+}

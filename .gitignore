@@ -1,0 +1,42 @@
+# 参考原文与敏感配置
+docs/source/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+*.crt
+*.log
+logs/
+secrets/
+private/
+
+# 音频、声纹和本地状态
+*.wav
+*.pcm
+*.mp3
+*.onnx
+*.embedding
+*.db
+*.sqlite*
+state/
+backups/
+
+# 构建、依赖与编辑器
+node_modules/
+dist/
+build/
+.gradle/
+.idea/
+.vscode/
+Library/
+Temp/
+Obj/
+UserSettings/
+*.apk
+*.aab
+.DS_Store

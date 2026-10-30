@@ -1,0 +1,46 @@
+# 待 VPS 改版更新
+# 构建产物与用户目录须预先准备；不是本仓库提供的可执行程序。
+[Unit]
+Description=VR MCP 中转服务
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=vr-relay
+Group=vr-relay
+WorkingDirectory=/opt/vr-mcp-relay
+EnvironmentFile=/etc/vr-mcp-relay/relay.env
+ExecStart=/usr/bin/node /opt/vr-mcp-relay/dist/index.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillSignal=SIGTERM
+UMask=0077
+StateDirectory=vr-mcp-relay
+StateDirectoryMode=0700
+ReadWritePaths=/var/lib/vr-mcp-relay
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+AmbientCapabilities=
+LimitNOFILE=8192
+TasksMax=128
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
