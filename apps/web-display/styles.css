@@ -1,0 +1,51 @@
+:root {
+  color-scheme: dark;
+  --ink: #d7f3ff;
+  --line: #7fd0ff;
+  --panel: rgba(8, 16, 32, 0.88);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #070b14;
+  color: var(--ink);
+  font: 16px/1.4 sans-serif;
+}
+
+#view {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+.hud {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  max-width: calc(100vw - 32px);
+  padding: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+
+input, button {
+  font: inherit;
+  color: var(--ink);
+  background: #101826;
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+}
+
+button { cursor: pointer; }
+button:disabled { opacity: 0.45; cursor: default; }
+
+#status { min-width: 8em; }

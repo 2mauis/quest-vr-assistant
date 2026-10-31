@@ -1,5 +1,6 @@
 # 待 VPS 改版更新
-# Caddy v2；示例域名须在私有部署配置替换。
+# Caddy v2。示例域名须在私有部署配置中替换。
+# 只公开 MCP。显示页、WebSocket 和配对留在本机端口，不经过这个站点。
 vr.example.com {
     tls {
         issuer acme {
@@ -7,28 +8,10 @@ vr.example.com {
         }
     }
 
-    @mcp path /mcp /mcp/*
-    handle @mcp {
-        reverse_proxy localhost:8787 {
+    handle /mcp {
+        reverse_proxy localhost:8788 {
             flush_interval -1
         }
-    }
-
-    @ws path /ws
-    handle @ws {
-        reverse_proxy localhost:8787 {
-            stream_timeout 24h
-            stream_close_delay 5m
-        }
-    }
-
-    @device path /api/device/pair /api/device/session
-    handle @device {
-        reverse_proxy localhost:8787
-    }
-
-    handle /healthz {
-        reverse_proxy localhost:8787
     }
 
     handle {

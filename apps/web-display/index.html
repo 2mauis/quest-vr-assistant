@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>显示</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body data-scene="" data-panels="0" data-connected="0">
+  <canvas id="view"></canvas>
+  <form class="hud" id="hud">
+    <label>配对口令
+      <input id="token" name="token" type="password" autocomplete="off" required>
+    </label>
+    <button type="submit" id="connect">连接</button>
+    <button type="button" id="disconnect" disabled>断开</button>
+    <button type="button" id="xr" disabled>进入 WebXR</button>
+    <span id="status">未连接</span>
+  </form>
+  <script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/"}}</script>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
