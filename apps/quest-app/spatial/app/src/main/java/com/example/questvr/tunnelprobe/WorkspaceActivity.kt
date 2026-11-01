@@ -29,9 +29,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.meta.spatial.compose.ComposeFeature
 import com.meta.spatial.compose.ComposeViewPanelRegistration
 import com.meta.spatial.core.*
-import com.meta.spatial.runtime.ReferenceSpace
-import com.meta.spatial.runtime.SessionState
-import com.meta.spatial.runtime.SystemBase
+import com.meta.spatial.isdk.*
+import com.meta.spatial.runtime.*
 import com.meta.spatial.toolkit.*
 import com.meta.spatial.vr.VRFeature
 import java.io.File
