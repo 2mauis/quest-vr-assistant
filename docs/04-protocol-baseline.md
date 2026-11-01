@@ -1,6 +1,6 @@
 # 已实现的 MCP 与显示协议基线
 
-> 本页描述现有 Node / 桌面验证代码，供原生实现保留语义时参考；不是原生运行时、Quest 语音或隧道已通过的声明。历史证据见[验证记录](validation-baseline.md)。
+> 本页描述现有 Node / 桌面验证代码，供原生实现保留语义时参考；不是原生运行时、Quest 语音或隧道已通过的声明。历史证据见[验证记录](03-validation-baseline.md)。
 
 ## 传输
 
@@ -55,4 +55,4 @@ schema 都是 object，列出 required，并且 `additionalProperties=false`。�
 
 先核对授权与入口隔离，再实际调用工具，将请求、序号、ACK 与画面对齐。`Connected`、工具列表、健康响应或 `queued` 均不能代替显示确认。重试使用正确的幂等语义，避免复用旧请求后误判本次成功。
 
-历史 Grok 托管连接器采用静态 Bearer 的实际调用已通过，详见[验证记录](validation-baseline.md)。连接器配置中的秘密不得进入 URL、命令参数、截图或仓库；TLS 不能替代授权。Quest 语音与原生 App 联调按[新里程碑](07-milestones.md)单独验收。
+历史 Grok 托管连接器采用静态 Bearer 的实际调用已通过，详见[验证记录](03-validation-baseline.md)。连接器配置中的秘密不得进入 URL、命令参数、截图或仓库；TLS 不能替代授权。Quest 语音与原生 App 联调按[新里程碑](02-milestones.md)单独验收。

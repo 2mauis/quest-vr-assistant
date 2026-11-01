@@ -24,12 +24,12 @@
 
 ## 已实现的协议基线
 
-现有 Node / 桌面验证代码提供两个 localhost 端口、静态 Bearer 与独立配对凭据、三个显示工具及渲染 ACK，接受 2026-07-28 与 2025-11-25 两种协议流程。它没有 OAuth、原生 MR 或视觉输入实现，`interaction` 仅留在中继内存。具体约束见[协议基线](protocol-baseline.md)。
+现有 Node / 桌面验证代码提供两个 localhost 端口、静态 Bearer 与独立配对凭据、三个显示工具及渲染 ACK，接受 2026-07-28 与 2025-11-25 两种协议流程。它没有 OAuth、原生 MR 或视觉输入实现，`interaction` 仅留在中继内存。具体约束见[协议基线](04-protocol-baseline.md)。
 
-托管端曾通过静态 Bearer 完成实际工具调用和桌面画面对齐，见[历史验证](validation-baseline.md)。这项兼容性已有证据；Quest 上的实际语音会话和原生显示仍待验证，不能混为同一结果。
+托管端曾通过静态 Bearer 完成实际工具调用和桌面画面对齐，见[历史验证](03-validation-baseline.md)。这项兼容性已有证据；Quest 上的实际语音会话和原生显示仍待验证，不能混为同一结果。
 
 ## 历史保留
 
 既有 Mac mini、Tailscale、Cloudflare Worker、frp 路线保持否决状态。Cloudflare Tunnel 与 Worker 承载工具逻辑不同；现有 Tunnel 选择不重新启用 Worker 路线。旧 VPS / Caddy / systemd 示例和容器构建材料已从当前分支删除，未部署的示例不作为验证证据。
 
-完整方案见[原生 MR 方案](08-native-spatial-options.md)，实施顺序见[里程碑](07-milestones.md)。
+完整方案见[原生 MR 方案](01-native-spatial-plan.md)，实施顺序见[里程碑](02-milestones.md)。

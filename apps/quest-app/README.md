@@ -1,6 +1,6 @@
 # Quest 原生 MR App
 
-这是已确认产品主线的后续实现入口，目前没有 Android 工程或可安装 APK。[完整方案](../../docs/08-native-spatial-options.md)、[里程碑](../../docs/07-milestones.md)和[实机证据](../../docs/validation-baseline.md)定义范围与顺序。
+这是已确认产品主线的后续实现入口，目前没有 Android 工程或可安装 APK。[完整方案](../../docs/01-native-spatial-plan.md)、[里程碑](../../docs/02-milestones.md)和[实机证据](../../docs/03-validation-baseline.md)定义范围与顺序。
 
 自研 App 负责 Quest 本机 MCP、空间面板与布局、透视视觉联动、服务 / 隧道就绪，以及联动启动已安装的 Grok Bot App。语音、对话和账号复用 Grok Bot，不另接模型 API。
 

@@ -12,11 +12,11 @@
 
 Quest 3 已识别为 Android 14 / API 34 / ARM64。官方 `cloudflared` 2026.10.7 在 ADB shell 下可执行，设备本地健康端点可响应；但该 Linux 发布资产申请 Tunnel 时在 Go DNS 解析阶段失败；Quest 系统自身能解析同一地址。外部 HTTPS 请求尚未执行，不能判为连通，也不能据此断言 Quest 不支持 Tunnel。临时文件和进程已清理。下一步先验证 Android 解析适配，再复测外部响应；App UID、自动启动、APK 内置和休眠恢复仍待验证。
 
-1. [原生 MR 方案与责任边界](docs/08-native-spatial-options.md)
-2. [里程碑与验收顺序](docs/07-milestones.md)
-3. [已确认决策及待验证项](docs/decisions.md)
-4. [实现中的协议基线](docs/protocol-baseline.md)
-5. [历史验证与当前实机证据](docs/validation-baseline.md)
+1. [原生 MR 方案与责任边界](docs/01-native-spatial-plan.md)
+2. [里程碑与验收顺序](docs/02-milestones.md)
+3. [历史验证与当前实机证据](docs/03-validation-baseline.md)
+4. [实现中的协议基线](docs/04-protocol-baseline.md)
+5. [已确认决策及待验证项](docs/05-decisions.md)
 
 ## 保留的验证代码
 

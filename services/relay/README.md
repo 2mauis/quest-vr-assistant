@@ -1,6 +1,6 @@
 # 本地协议验证服务
 
-此 Node 进程保留作协议 / 桌面显示验证基线，不是已完成的 Quest 原生运行时。[原生主线](../../docs/08-native-spatial-options.md)与[验收状态](../../docs/validation-baseline.md)单独记录。
+此 Node 进程保留作协议 / 桌面显示验证基线，不是已完成的 Quest 原生运行时。[原生主线](../../docs/01-native-spatial-plan.md)与[验收状态](../../docs/03-validation-baseline.md)单独记录。
 
 `src/index.js` 加载 MCP、配对、WebSocket、有界内存队列及桌面显示页。`HOST` / `PORT` 提供显示、配对与 WebSocket；`TUNNEL_HOST` / `TUNNEL_PORT` 只处理精确 `/mcp`，其他路径返回 404。两个监听均只允许 localhost。
 
@@ -45,4 +45,4 @@ npm test
 npm run test:e2e
 ```
 
-E2E 首次使用需安装对应的无头浏览器：`npx playwright install chromium --only-shell`。测试使用随机本地端口与临时秘密并在结束后关闭，输出在忽略的 `test-results/`；模拟 XR 不能代替头显实测。契约见[协议基线](../../docs/protocol-baseline.md)。
+E2E 首次使用需安装对应的无头浏览器：`npx playwright install chromium --only-shell`。测试使用随机本地端口与临时秘密并在结束后关闭，输出在忽略的 `test-results/`；模拟 XR 不能代替头显实测。契约见[协议基线](../../docs/04-protocol-baseline.md)。
