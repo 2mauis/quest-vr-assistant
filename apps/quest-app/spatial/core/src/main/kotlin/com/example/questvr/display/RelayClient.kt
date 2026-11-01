@@ -77,19 +77,21 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
         data class Closed(val code: Int) : Event
     }
     private var current: WebSocket? = null
+    private var lastSeq = 0L
+    private var serverId = ""
 
     /** Restores short sessions from the device grant; cancellation and takeover remain terminal. */
-    suspend fun run(session: DisplaySession, engine: DisplayEngine,
+    suspend fun run(session: DisplaySession,
         status: (ConnectionStatus) -> Unit, onSessionRenewed: (DisplaySession) -> Unit = {},
-        present: suspend (WorkspaceState) -> Unit) {
+        present: suspend () -> Unit) {
         var attempt = 0
         var active = session
         var renewRequired = false
         var retriedAuthorization = false
         while (currentCoroutineContext().isActive) {
             if (renewRequired || System.currentTimeMillis() >= active.expiresAt) {
-                if (!active.canRefresh()) { status(ConnectionStatus("pairing_required", engine.lastSeq)); return }
-                status(ConnectionStatus("reconnecting", engine.lastSeq))
+                if (!active.canRefresh()) { status(ConnectionStatus("pairing_required", lastSeq)); return }
+                status(ConnectionStatus("reconnecting", lastSeq))
                 try {
                     active = refresh(active)
                     onSessionRenewed(active)
@@ -97,13 +99,13 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
                 } catch (error: CancellationException) { throw error }
                 catch (error: Exception) {
                     if (error is PairingFailure && error.status in setOf(400, 401, 403, 404)) {
-                        status(ConnectionStatus("pairing_required", engine.lastSeq)); return
+                        status(ConnectionStatus("pairing_required", lastSeq)); return
                     }
                     delay(if (error is PairingFailure && error.status == 429) 60_000L else retryDelay(attempt++))
                     continue
                 }
             }
-            status(ConnectionStatus(if (attempt == 0) "connecting" else "reconnecting", engine.lastSeq))
+            status(ConnectionStatus(if (attempt == 0) "connecting" else "reconnecting", lastSeq))
             val events = Channel<Event>(128)
             var overflow = false
             fun emit(event: Event, socket: WebSocket) {
@@ -136,14 +138,14 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
                 while (currentCoroutineContext().isActive) {
                     when (val event = withTimeout(if (authenticated) 60_000L else 10_000L) { events.receive() }) {
                         Event.Open -> ws.send(DisplayProtocol.encode("auth", body = buildJsonObject {
-                            put("session_token", active.token); put("last_seq", engine.lastSeq)
+                            put("session_token", active.token); put("last_seq", lastSeq)
                         }))
                         is Event.Closed -> {
                             if (event.code == 4401 && active.canRefresh() && !retriedAuthorization) {
                                 renewRequired = true; retriedAuthorization = true
                             } else {
                                 terminal = event.code in setOf(4401, 4410)
-                                if (terminal) status(ConnectionStatus(if (event.code == 4410) "taken_over" else "pairing_required", engine.lastSeq))
+                                if (terminal) status(ConnectionStatus(if (event.code == 4410) "taken_over" else "pairing_required", lastSeq))
                             }
                             break
                         }
@@ -151,17 +153,18 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
                             val message = DisplayProtocol.decode(event.text)
                             if (!authenticated) {
                                 require(message.type == "auth_ok") { "auth_required" }
-                                engine.authenticate(message.session)
+                                if (serverId.isNotEmpty() && serverId != message.session) lastSeq = 0
+                                serverId = message.session
                                 authenticated = true; attempt = 0; retriedAuthorization = false
-                                status(ConnectionStatus("connected", engine.lastSeq))
+                                status(ConnectionStatus("connected", lastSeq))
                             } else when (message.type) {
                                 "ping" -> ws.send(DisplayProtocol.encode("pong"))
                                 "pong", "interaction_ok", "interaction_rejected" -> Unit
                                 in DisplayProtocol.commands -> {
-                                    val ack = engine.apply(message, present)
+                                    val ack = acknowledge(message, present)
                                     currentCoroutineContext().ensureActive()
                                     if (ack != null) check(ws.send(DisplayProtocol.encode("ack", ack))) { "ack_send" }
-                                    status(ConnectionStatus("connected", engine.lastSeq))
+                                    status(ConnectionStatus("connected", lastSeq))
                                 }
                                 else -> error("unknown_message")
                             }
@@ -173,7 +176,7 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
             } catch (_: Exception) {
                 // Parsing/rendering failure must not fall through to a cumulative ACK of later commands.
                 terminal = true
-                status(ConnectionStatus(if (overflow) "queue_full" else "render_failed", engine.lastSeq))
+                status(ConnectionStatus(if (overflow) "queue_full" else "render_failed", lastSeq))
             } finally {
                 if (current === ws) current = null
                 ws.cancel(); events.cancel()
@@ -181,6 +184,18 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
             if (terminal) return
             if (!renewRequired) delay(retryDelay(attempt++))
         }
+    }
+
+    private suspend fun acknowledge(message: Envelope, present: suspend () -> Unit): Long? {
+        require(message.session == serverId) { "stale_server" }
+        if (message.type != "snapshot") {
+            if (message.seq <= lastSeq) return lastSeq
+            require(message.seq == lastSeq + 1) { "sequence_gap" }
+        }
+        present()
+        currentCoroutineContext().ensureActive()
+        lastSeq = message.seq
+        return if (message.type == "snapshot") null else lastSeq
     }
 
     private fun retryDelay(attempt: Int): Long =

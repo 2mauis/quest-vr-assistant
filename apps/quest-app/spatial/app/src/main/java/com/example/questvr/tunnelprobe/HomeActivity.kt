@@ -86,11 +86,10 @@ class HomeActivity : ComponentActivity() {
                                             try {
                                                 val normalized = DisplayProtocol.endpoint(endpoint, BuildConfig.DEBUG)
                                                 val session = client.pair(normalized, pairingToken)
-                                                if (store.endpoint != normalized) WorkspaceRuntime.engine.reset()
                                                 store.save(session); endpoint = normalized; paired = true
                                                 WorkspaceRuntime.connectionAllowed.value = true
                                                 WorkspaceRuntime.explicitReconnectRequired = false
-                                                WorkspaceRuntime.status.value = ConnectionStatus("paired", WorkspaceRuntime.engine.lastSeq)
+                                                WorkspaceRuntime.status.value = ConnectionStatus("paired")
                                                 message = "配对完成，可以进入工作区。"
                                             } catch (error: Exception) {
                                                 message = when ((error as? PairingFailure)?.status) {
@@ -105,7 +104,6 @@ class HomeActivity : ComponentActivity() {
                                         WorkspaceRuntime.connectionAllowed.value = false
                                         WorkspaceRuntime.explicitReconnectRequired = true
                                         store.clear(); paired = false; token = ""
-                                        WorkspaceRuntime.engine.reset()
                                         WorkspaceRuntime.status.value = ConnectionStatus("disconnected")
                                         message = "已移除此 App 的显示连接。"
                                     }) { Text("移除连接") }

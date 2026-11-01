@@ -48,6 +48,7 @@ Quest 本机 MCP 正式服务、正式 Tunnel 生命周期 / 自启、相机新�
 5. [已确认决策及待验证项](docs/05-decisions.md)
 6. [原生空间评审与精炼计划](docs/06-native-spatial-review.md)
 7. [双轨显示架构](docs/07-architecture-two-track.md)
+8. [具名 Tunnel 计划（未执行）](docs/08-named-tunnel-plan.md)
 
 正式 Cloudflare 入口的当前状态、env / 令牌分工及切换步骤见[具名 Tunnel 配置](config/cloudflared/README.md)。已验证固定入口的鉴权 / 工具发现与路径隔离；Grok 连接器与新原生显示的联合验收另行记录。
 

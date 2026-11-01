@@ -1,6 +1,6 @@
 # 里程碑
 
-> 2026-11-01 双轨重构：桌面浏览器上的网页显示取代手写 three.js 页面；原生工作区改为 WebView 显示面板加既有 Grok 窗口。`DisplayEngine` 降级为协议测试。桌面 e2e 不能代替头显验收。结构见 [双轨架构](07-architecture-two-track.md)。此前 `0.4-spatial` 的实机证据仍只覆盖旧的 Kotlin 呈现。
+> 2026-11-01 双轨重构：桌面浏览器上的网页显示取代手写 three.js 页面；原生工作区改为 WebView 显示面板加既有 Grok 窗口。`DisplayEngine` 与预设 GLB 已删除。桌面 e2e 不能代替头显验收；头显步骤仍见 [架构](07-architecture-two-track.md)，实机推迟。具名 Tunnel 只计划、不执行，见 [计划](08-named-tunnel-plan.md)。此前 `0.4-spatial` 的实机证据仍只覆盖已删除的 Kotlin 呈现。
 
 > 2026-11-01。以下是本分支记录的 Quest 本机 MCP 阶段，不是主线那六段（本地协议、显示闭环、WebXR 会话、交互占位、托管端闭环、正式 VPS）。两套清单的对应关系见 [原生空间评审](06-native-spatial-review.md)。本表的通过项不关闭那六段，也不产生首包 P50 / P90。
 >

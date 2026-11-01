@@ -37,11 +37,10 @@ class DebugDisplayActivity : Activity() {
                 val endpoint = DisplayProtocol.endpoint(input.getString("endpoint"), true)
                 val session = client.pair(endpoint, input.getString("pairing_token"))
                 val store = DisplaySessionStore(this@DebugDisplayActivity)
-                if (store.endpoint != endpoint) WorkspaceRuntime.engine.reset()
                 store.save(session)
                 WorkspaceRuntime.connectionAllowed.value = true
                 WorkspaceRuntime.explicitReconnectRequired = false
-                WorkspaceRuntime.status.value = ConnectionStatus("paired", WorkspaceRuntime.engine.lastSeq)
+                WorkspaceRuntime.status.value = ConnectionStatus("paired")
                 Log.i("QvrWorkspace", "debug_pairing=paired")
                 startActivity(Intent(this@DebugDisplayActivity, WorkspaceActivity::class.java)
                     .setAction(Intent.ACTION_MAIN).putExtra(WorkspaceActivity.OPEN_GROK, true)

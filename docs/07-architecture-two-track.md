@@ -19,7 +19,7 @@
 - 中继的 `seq`、幂等、队列、单个活动显示连接，以及关闭码 `4410` / `4401`。
 - `delivered: true` 只在显示端 ACK 之后出现。
 - 公网入口只转发 `/mcp`。Bearer 与显示配对口令仍然分开。
-- Quick Tunnel 仍是这条重构的连接方式。具名 Tunnel 的进一步变更需要机主批准；仓库里已有的说明见 [config/cloudflared/README.md](../config/cloudflared/README.md)，本分支没有改 DNS 或云端配置。
+- Quick Tunnel 仍是这条重构的连接方式。具名 Tunnel 的执行计划见 [具名 Tunnel 计划](08-named-tunnel-plan.md)。本分支没有改 DNS、WAF 或云端配置。仓库里已有的说明见 [config/cloudflared/README.md](../config/cloudflared/README.md)。
 
 ## 数据流
 
@@ -39,7 +39,7 @@ flowchart LR
   client[MCP client] -->|Bearer /mcp| relay
 ```
 
-桌面浏览器和头显 WebView 加载同一份 Vite 构建。原生壳不再跑 `DisplayEngine` 的网格呈现。`DisplayEngine`、`RelayClient` 和预设 GLB 仍留在 `apps/quest-app/spatial/core` 与打包校验里，供协议单元测试和现有 APK 检查使用，工作区 Activity 不调用它们。
+桌面浏览器和头显 WebView 加载同一份 Vite 构建。原生壳不自绘场景。机主已要求删除 `DisplayEngine` 和四个预设 GLB；`RelayClient` 只保留配对和显示 WebSocket，不再保存场景状态。头显安装推迟到下一次实机，下面的步骤保持不变。
 
 ## 开发与调试
 
@@ -80,13 +80,14 @@ SDK 的默认 2025 回退是无会话的，并且 DELETE 返回 200。本服务�
 | `apps/web-display/main.js`、`xr.js` | 删除 |
 | `apps/quest-app/spatial/.../WorkspaceActivity.kt` | 替换为薄壳 |
 | `apps/quest-app/spatial/.../GrokWindowActivity.kt`、`DisplaySessionStore.kt`、`HomeActivity.kt` | 保留；Home 文案改为网页显示 |
-| `DisplayEngine`、`RelayClient`、`generate-presets.py` | 降级。测试和 APK 预设校验仍编译它们，工作区不再用它们画场景 |
+| `DisplayEngine.kt`、`DisplayEngineTest.kt`、`generate-presets.py`、四个预设 GLB | 删除。场景状态不再由原生核心保存 |
+| `RelayClient` | 保留配对、刷新和 WebSocket。序号只在连接期间使用，不再调用已删除的场景引擎 |
 | `apps/quest-app/tunnel-probe` | 保留并修明显崩溃点 |
-| Cloudflare 账号、DNS、WAF、具名 Tunnel | 本分支不修改。具名 Tunnel 的下一步操作等待机主批准 |
+| Cloudflare 账号、DNS、WAF、具名 Tunnel | 本分支不修改。下一步只见 [计划](08-named-tunnel-plan.md)，执行前逐项批准 |
 
 ## 头显操作
 
-这些步骤需要机主在设备上执行。本环境没有头显。
+这些步骤需要机主在设备上执行。头显测试推迟；步骤保留在这里，本环境没有头显。
 
 1. 用和已安装包相同的调试签名构建 `apps/quest-app/spatial`。CI 产物是临时签名，不能覆盖已登录的安装。
 2. `adb install -r` 安装该 APK。不要为了换签名而卸载。

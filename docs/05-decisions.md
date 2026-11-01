@@ -5,9 +5,10 @@
 机主要求把显示拆成网页轨道和原生壳，并保持三个工具的外部接口。已采用的决定：
 
 - 画面由 Vite 构建的 React Three Fiber 页面呈现，沉浸会话使用 `@react-three/xr`，面板使用 `@react-three/uikit`，glTF 使用 `@react-three/drei`。评估后没有改用 A-Frame，原因见 [架构](07-architecture-two-track.md)。
-- 原生 APK 只保留 Spatial SDK 薄壳：Grok 继续走 Custom Tabs，显示页放在 WebView 面板。`DisplayEngine` 不再被工作区调用，仍供核心模块测试和既有预设打包校验。
-- MCP 处理改用官方 TypeScript SDK 2.x。npm 上的 `@modelcontextprotocol/sdk` 没有 2.x；实现使用 `@modelcontextprotocol/server` 2.4.0 与 `@modelcontextprotocol/node` 2.1.2。`server/discover` 的版本列表只包含 `2026-07-28`，`2025-11-25` 仍走 `initialize`。这是相对旧手写发现响应的差异，连接器若依赖旧列表需要机主确认。
-- 本轮不修改 Cloudflare DNS、WAF、账号配置，也不新建具名 Tunnel。Quick Tunnel 继续用于这条路径。具名 Tunnel 的后续操作等待批准。
+- 原生 APK 只保留 Spatial SDK 薄壳：Grok 继续走 Custom Tabs，显示页放在 WebView 面板。机主随后要求删除 `DisplayEngine` 与预设 GLB，不再保留为测试或打包内容。
+- MCP 处理改用官方 TypeScript SDK 2.x。npm 上的 `@modelcontextprotocol/sdk` 没有 2.x；实现使用 `@modelcontextprotocol/server` 2.4.0 与 `@modelcontextprotocol/node` 2.1.2。机主已接受现状：`server/discover` 和现代路径的 `-32022` 只列出 `2026-07-28`；`2025-11-25` 继续通过 `initialize` 在同一个 `/mcp` 上协商。不再改回旧的双版本发现列表。
+- 机主要求删除 Kotlin `DisplayEngine` 和四个预设 GLB。网页显示负责预设与面板；原生壳不再打包这些模型。
+- 本轮不修改 Cloudflare DNS、WAF、账号配置，也不新建具名 Tunnel。Quick Tunnel 继续用于这条路径。具名 Tunnel 只记录计划，见 [计划](08-named-tunnel-plan.md)，执行前仍需逐项批准。
 
 ## 已确认（2026-11-01）
 

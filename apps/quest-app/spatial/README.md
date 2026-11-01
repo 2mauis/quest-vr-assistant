@@ -1,6 +1,6 @@
 # Quest Assistant 原生主体
 
-> 双轨重构后，`WorkspaceActivity` 是薄壳：Spatial SDK 放置 Grok Custom Tab 窗口和加载网页显示的 WebView 面板。三维内容由网页显示绘制。`DisplayEngine` 仍参与 `:core:test`，工作区不再调用它。详见 [双轨架构](../../../docs/07-architecture-two-track.md)。
+> 双轨重构后，`WorkspaceActivity` 是薄壳：Spatial SDK 放置 Grok Custom Tab 窗口和加载网页显示的 WebView 面板。三维内容由网页显示绘制。`DisplayEngine` 和四个预设 GLB 已删除。详见 [双轨架构](../../../docs/07-architecture-two-track.md)。
 
 `0.4-spatial` 仍使用 Meta Spatial SDK 0.14.0 + Compose。此前 Kotlin 自绘路径的实机回执不能自动转成这条 WebView 路径的头显验收。历史画面证据见[实机记录](../../../docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
 
@@ -9,20 +9,18 @@
 - 连接页：显示地址、一次性输入配对口令、错误 / 限流提示、重新配对和移除连接。短期会话与独立设备恢复授权经 Android Keystore AES-GCM 加密保存在 App 私有存储；不保存配对口令，不接收 MCP Bearer 或 Cloudflare 管理凭据。
 - 默认 Grok Custom Tab 和备用 WebView 复用上一版源码。Grok 使用独立二维任务，默认 `1280×720 dp` 横屏；明确选择网页入口时打开；直接进入工作区保留原生输入焦点。已实现复用存活浏览器任务，连续三次打开未增加页面；历史隐藏旧页、重启 / 更新全流程仍需回归。浏览器持有登录、网站权限与麦克风，App 不读取 Cookie。网页地址通过构建环境输入。
 - `/api/device/pair` 与 `/ws` 显示协议：鉴权、心跳超时、带抖动的有界退避、快照、连续序号、重复消息、单连接接管。短期会话到期和 `4401` 先使用恢复授权自动续期，原签名更新与重开无需重复输入。启动配置和连接遇到临时网络故障自动退避重试。授权失效才要求重新配对；`4410` 接管及主动移除连接停止重连。
-- 透视工作区：`show_scene` 的四种内置预设、允许来源的 glTF / GLB；`render_panel` 多块 Compose 纯文本面板、同 ID 更新；`clear` 的 scene / panel / all。当前资源保护上限为 32 块面板。
+- 透视工作区现在承载网页显示。四种预设、面板和清除由该页面绘制，不再由 APK 内的 GLB 或 Compose 场景完成。
 - 面板已配置抓取边缘与等比缩放，并有逐块“缩小 / 放大”按钮；对象按包围盒缩小，配置触碰碰撞体、双手缩放和控制页大小按钮。选择 / 激活上报现有 `interaction`；XR 自动化已在设备上验证控制器放大、面板侧键 / 手部射线拖动和模型手势抓取，见实机记录。移动不回写中继 `pose`，也不会触发新对话或模型调用。
 - 串行呈现：先等待模型加载、对应 Compose 内容绘制、有效空间帧推进，再提交连续序号和 ACK。快照替换状态但不 ACK；失败和取消不越过未呈现命令。
 - OpenXR `VISIBLE` 和 `FOCUSED` 均允许继续呈现，因此网页获得焦点时不会仅因焦点变化断开显示。只有获得输入焦点才上报场景选择；摘下头显、Activity 暂停或空间会话不可见时取消在途呈现并断开。恢复时重建已提交画面、按最后序号补发；设备接管和内容失败要求明确重试。
 
 按最新实机反馈，默认采用紧凑右侧布局：在活动帧开始后采样佩戴者位置和水平朝向，控制页 `42×38 cm`，文字面板 `48×32 cm`，模型最长边默认 `25 cm`（再应用工具的 `scale`）。Compose quad 的局部负 Z 正面朝向初始佩戴位置，给正前方网页和系统操作留出空间。协议位置 / 锚点转换为此布局内的缩小偏移，旋转继续应用；这不再与桌面端的固定世界坐标逐点等同。`head` 不连续跟随；“收回右侧”按当前朝向重新排列。文字更新保留已拖动的位置和尺寸，明确的放置变化才重置。尚无房间锚点或跨进程场景恢复。
 
-四个内置 GLB 预设显式生成三角形索引，并在打包时校验 accessor、缓冲边界和顶点范围，避免当前 SDK 加载非索引预设时触发原生断言。此校验针对内置预设，不代表任意外部模型都已通过实机兼容验证。
-
-模型下载仅使用显示配置返回的 HTTPS 来源，不跟随重定向。外部 buffer / PNG / JPEG 纹理先检查来源并转为内嵌资源，再交给 SDK；每次模型及依赖总下载量最多 25 MiB、最多 32 个外部资源。要求未实现的 glTF 扩展、不可用模型或不允许的资源会停止回执，不用替代物冒充成功。
+预设 GLB 生成和打包校验已去掉。APK 检查会拒绝再把 `assets/presets/` 打进包。外部模型由网页显示按中继允许的来源加载。
 
 ## 构建
 
-复用本机 JDK 21、Android Platform 34 / Build Tools 35.0.0 / Platform Tools，Gradle 固定为 8.14.3。AGP 8.11.1、Kotlin 2.1.0、Spatial SDK 0.14.0 与依赖在工程中显式固定；预设由 `generate-presets.py` 生成，不需要 Spatial Editor。
+复用本机 JDK 21、Android Platform 34 / Build Tools 35.0.0 / Platform Tools，Gradle 固定为 8.14.3。AGP 8.11.1、Kotlin 2.1.0、Spatial SDK 0.14.0 与依赖在工程中显式固定。不再生成预设模型，也不需要 Spatial Editor。
 
 ```sh
 export JAVA_HOME='<JDK_HOME>'
@@ -40,7 +38,7 @@ sh apps/quest-app/spatial/build.sh
 
 ## GitHub Actions 构建
 
-[quest-apk 工作流](../../../.github/workflows/apk-probe.yml)从源码构建 ARM64 诊断组件和原生工作区，执行健康 / 网页策略检查及原生核心协议检查，再核对 APK 签名、16 KiB ZIP 对齐、组件哈希、四个预设和实际网页入口。相关源码推送、PR 和手动触发均支持；手动入口需要工作流已存在于默认分支。
+[quest-apk 工作流](../../../.github/workflows/apk-probe.yml)从源码构建 ARM64 诊断组件和原生工作区，执行健康 / 网页策略检查及原生核心协议检查，再核对 APK 签名、16 KiB ZIP 对齐、组件哈希和实际网页入口。相关源码推送、PR 和手动触发均支持；手动入口需要工作流已存在于默认分支。
 
 该公开仓库没有可用自建 runner，沿用已有的 GitHub 托管路线并固定为 `ubuntu-24.04`。Action 使用核对过的完整提交哈希，权限为 `contents: read`，不推送镜像、不部署服务或安装头显。
 

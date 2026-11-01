@@ -1,6 +1,6 @@
 # 具名 Tunnel：从本地配置切换固定 MCP 入口
 
-双轨显示重构不修改 DNS、WAF、账号或 Tunnel 资源，也不新建具名 Tunnel。下面保留此前已授权切换的记录。进一步的具名 Tunnel 操作需要机主再次批准。当前重构路径继续可以使用 Quick Tunnel，只转发 `/mcp`。
+双轨显示重构不修改 DNS、WAF、账号或 Tunnel 资源，也不新建具名 Tunnel。下面保留此前已授权切换的记录。下一步具名 Tunnel 只写在 [计划](../../docs/08-named-tunnel-plan.md)，尚未执行。当前重构路径继续可以使用 Quick Tunnel，只转发 `/mcp`。
 
 阶段 1 仍使用现有 Node 中继，显示端通过开发路径连接。用户已明确授权将专用具名 Tunnel 改接现有 `/mcp`，本机固定入口已切换；这不迁移 MCP 到 Quest，也不代表常驻部署或头显工具闭环已经完成。最新决定见[阶段决策](../../docs/05-decisions.md)。
 

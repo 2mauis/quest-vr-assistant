@@ -26,12 +26,6 @@ val generateWebConfig = tasks.register("generateWebConfig") {
             "static final String START_URL = \"${url.toASCIIString()}\";\n}\n")
     }
 }
-val generatedAssets = layout.buildDirectory.dir("generated/assets")
-val generatePresets = tasks.register<Exec>("generatePresets") {
-    inputs.file(rootProject.file("generate-presets.py"))
-    outputs.dir(generatedAssets.map { it.dir("presets") })
-    commandLine("python3", rootProject.file("generate-presets.py"), generatedAssets.get().dir("presets").asFile)
-}
 val probeApk = File(legacy, "build/quest-tunnel-probe.apk")
 // Optional local automation layer; never included in normal / release or CI builds.
 val xrOperator = providers.environmentVariable("QVR_XR_OPERATOR_DIR").orNull?.let { file(it) }
@@ -79,7 +73,7 @@ android {
     }
     sourceSets["main"].apply {
         java.srcDirs(File(legacy, "src"), generatedJava)
-        assets.srcDirs(File(legacy, "assets"), generatedAssets, layout.buildDirectory.dir("generated/probe/assets"))
+        assets.srcDirs(File(legacy, "assets"), layout.buildDirectory.dir("generated/probe/assets"))
         jniLibs.srcDir(layout.buildDirectory.dir("generated/probe/lib"))
     }
     if (prepareOperator != null) sourceSets["debug"].apply {
@@ -98,7 +92,7 @@ android {
         resources.excludes += "META-INF/LGPL2.1"
     }
 }
-tasks.named("preBuild") { dependsOn(generateWebConfig, generatePresets, prepareProbe) }
+tasks.named("preBuild") { dependsOn(generateWebConfig, prepareProbe) }
 if (prepareOperator != null) tasks.matching { it.name == "preDebugBuild" }.configureEach { dependsOn(prepareOperator) }
 dependencies {
     implementation(project(":core"))

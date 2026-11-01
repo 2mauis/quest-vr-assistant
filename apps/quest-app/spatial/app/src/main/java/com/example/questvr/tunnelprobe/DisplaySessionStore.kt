@@ -4,7 +4,6 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import com.example.questvr.display.DisplayEngine
 import com.example.questvr.display.DisplaySession
 import com.example.questvr.display.ConnectionStatus
 import java.security.KeyStore
@@ -17,7 +16,6 @@ import org.json.JSONObject
 
 /** Process state is separate from the short-lived encrypted pairing session. */
 object WorkspaceRuntime {
-    val engine = DisplayEngine()
     val status = MutableStateFlow(ConnectionStatus("disconnected"))
     val connectionAllowed = MutableStateFlow(true)
     var explicitReconnectRequired = false

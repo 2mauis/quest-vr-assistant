@@ -45,7 +45,7 @@ class RelayClientTest {
             withTimeout(8000) {
                 client.run(DisplaySession(server.url("/").toString().trimEnd('/'), "<TEST_SESSION>", System.currentTimeMillis()+60_000,
                     "r".repeat(64), System.currentTimeMillis()+120_000),
-                    DisplayEngine(), { phases += it.phase }) { fail("no scene expected") }
+                    { phases += it.phase }) { fail("no scene expected") }
             }
             assertEquals("auth", auth.await()["type"]!!.jsonPrimitive.content)
             assertEquals("taken_over", phases.last())
@@ -73,7 +73,7 @@ class RelayClientTest {
             val expired = DisplaySession(server.url("/").toString().trimEnd('/'), "old", 0,
                 "r".repeat(64), System.currentTimeMillis()+120_000)
             assertTrue(expired.canRestore())
-            withTimeout(8000) { client.run(expired, DisplayEngine(), {}, { saved = it }) {} }
+            withTimeout(8000) { client.run(expired, {}, { saved = it }) {} }
             assertEquals(fresh, auth.await())
             assertEquals(fresh, saved?.token)
             assertTrue(saved!!.expiresAt > System.currentTimeMillis())
@@ -93,7 +93,7 @@ class RelayClientTest {
         try {
             withTimeout(8000) {
                 client.run(DisplaySession(server.url("/").toString().trimEnd('/'), "old", 0,
-                    "r".repeat(64), System.currentTimeMillis()+120_000), DisplayEngine(), { phases += it.phase }) {}
+                    "r".repeat(64), System.currentTimeMillis()+120_000), { phases += it.phase }) {}
             }
             assertEquals("pairing_required", phases.last())
             assertEquals(1, server.requestCount)
@@ -116,7 +116,7 @@ class RelayClientTest {
         try {
             withTimeout(8000) {
                 client.run(DisplaySession(server.url("/").toString().trimEnd('/'), "old", System.currentTimeMillis()+60_000,
-                    "r".repeat(64), System.currentTimeMillis()+120_000), DisplayEngine(), { phases += it.phase }, { saved = true }) {}
+                    "r".repeat(64), System.currentTimeMillis()+120_000), { phases += it.phase }, { saved = true }) {}
             }
             assertTrue(saved)
             assertEquals("pairing_required", phases.last())
@@ -148,10 +148,20 @@ class RelayClientTest {
         try {
             withTimeout(8000) {
                 client.run(DisplaySession(server.url("/").toString().trimEnd('/'), "<TEST_SESSION>", System.currentTimeMillis()+60_000),
-                    DisplayEngine(), {}) { delay(20); drawn = true }
+                    {}) { delay(20); drawn = true }
             }
             assertTrue(drawn)
             assertEquals(1, acknowledged.await())
         } finally { client.close(); server.shutdown() }
+    }
+
+    @Test fun displayEndpointAndMessagesFailClosed() {
+        assertEquals("http://localhost:8787", DisplayProtocol.endpoint("http://localhost:8787/", true))
+        for (url in listOf("http://display.example.com/", "https://user@display.example.com/",
+            "https://display.example.com/mcp", "https://display.example.com/?token=sample")) {
+            assertFails { DisplayProtocol.endpoint(url, true) }
+        }
+        assertFails { DisplayProtocol.endpoint("http://localhost:8787", false) }
+        assertFails { DisplayProtocol.decode("{}") }
     }
 }
