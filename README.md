@@ -8,9 +8,9 @@
 
 ## 当前状态与下一步
 
-产品拓扑已经确认，原生 App 尚未实现。仓库整理已提交推送，随后完成了隔离 Quest Tunnel 探针的首轮诊断。探针仅返回固定无敏感响应，不连接现有 MCP、显示、配对或私有服务，不配置永久入口或开机自启。
+产品拓扑已经确认，原生 App 尚未实现。**Quest Tunnel 最小实机回环已通过**：在 Quest 3 / Android 14 / API 34 / ARM64 的 ADB shell 中运行隔离适配构建，建立 4 条 QUIC 连接；外部 HTTPS 健康请求返回 200，运行码、请求码与 Quest 本机回执一致。
 
-Quest 3 已识别为 Android 14 / API 34 / ARM64。官方 `cloudflared` 2026.10.7 在 ADB shell 下可执行，设备本地健康端点可响应；但该 Linux 发布资产申请 Tunnel 时在 Go DNS 解析阶段失败；Quest 系统自身能解析同一地址。外部 HTTPS 请求尚未执行，不能判为连通，也不能据此断言 Quest 不支持 Tunnel。临时文件和进程已清理。下一步先验证 Android 解析适配，再复测外部响应；App UID、自动启动、APK 内置和休眠恢复仍待验证。
+适配基于 `cloudflared` 2026.10.7，分别处理进程 DNS、内部 DNS 服务和 Android 系统证书目录。用户另行授权的路由器 fake-IP 排除规则已验证生效；正常 TLS 校验始终开启。已创建专用具名 Tunnel 与固定域名，验证结束保留配置和本机私有凭据，撤下临时健康路由并清理探针。未接入现有 MCP、显示或配对服务。下一步是 App UID / APK 内管理、自动启动与恢复、Grok 语音和双 App 共存验证；本轮结果不等于这些能力已完成。
 
 1. [原生 MR 方案与责任边界](docs/01-native-spatial-plan.md)
 2. [里程碑与验收顺序](docs/02-milestones.md)
