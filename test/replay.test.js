@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import WebSocket from "ws";
+import { once } from "node:events";
 import { mcpCall, startTestApp } from "./helpers.js";
 
 function track(socket) {
@@ -123,4 +124,43 @@ test("pairing token failures stay unauthorized and then rate limited", async (t)
     body: JSON.stringify({ token: started.env.DEVICE_PAIRING_TOKEN }),
   });
   assert.equal(locked.status, 429);
+});
+
+test("only an authenticated display can take over the active connection", async (t) => {
+  const started = await startTestApp();
+  t.after(() => started.app.close());
+  const first = await pairAndConnect(started, 0);
+  const pending = new WebSocket(`ws://localhost:${started.port}/ws`);
+  const pendingMessages = track(pending);
+  await once(pending, "open");
+
+  const callPromise = mcpCall(started.tunnelPort, started.env.MCP_BEARER_SECRET, "show_scene", {
+    request_id: "active-before-takeover", preset: "pedestal", anchor: "front",
+  });
+  const shown = await waitFor(first.messages, (message) => message.type === "show_scene");
+  first.socket.send(JSON.stringify({ v: 1, type: "ack", seq: shown.seq, body: {} }));
+  assert.equal((await callPromise).body.result.structuredContent.delivered, true);
+  assert.equal(pendingMessages.length, 0);
+
+  const rejected = once(pending, "close");
+  pending.send(JSON.stringify({ v: 1, type: "auth", body: { session_token: "invalid", last_seq: 0 } }));
+  assert.equal((await rejected)[0], 4401);
+  assert.equal(first.socket.readyState, WebSocket.OPEN);
+
+  const replaced = once(first.socket, "close");
+  const second = await pairAndConnect(started, 0);
+  assert.equal((await replaced)[0], 4410);
+  assert.equal((await waitFor(second.messages, (message) => message.type === "show_scene")).seq, shown.seq);
+  assert.equal(started.app.hub.displayConnected(), true);
+  second.socket.close();
+});
+
+test("a cursor ahead of a restarted relay receives the current snapshot", async (t) => {
+  const started = await startTestApp();
+  t.after(() => started.app.close());
+  const display = await pairAndConnect(started, 99);
+  const snapshot = await waitFor(display.messages, (message) => message.type === "snapshot");
+  assert.equal(snapshot.seq, 0);
+  assert.deepEqual(snapshot.body, { scene: null, panels: [], reason: "gap" });
+  display.socket.close();
 });

@@ -14,8 +14,16 @@
     </label>
     <button type="submit" id="connect">连接</button>
     <button type="button" id="disconnect" disabled>断开</button>
+    <button type="button" id="takeover" hidden>切回此设备</button>
+    <label>沉浸模式
+      <select id="xr-mode" disabled>
+        <option value="immersive-vr">VR</option>
+        <option value="immersive-ar">透视 AR</option>
+      </select>
+    </label>
     <button type="button" id="xr" disabled>进入 WebXR</button>
-    <span id="status">未连接</span>
+    <span id="status" role="status">未连接</span>
+    <span id="xr-status" role="status">正在检查头显支持</span>
   </form>
   <script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/"}}</script>
   <script type="module" src="/main.js"></script>

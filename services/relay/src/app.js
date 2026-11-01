@@ -104,7 +104,7 @@ async function serveFile(res, root, relativePath) {
 
 function displayPath(pathname) {
   if (pathname === "/" || pathname === "/index.html") return { root: DISPLAY_ROOT, file: "index.html" };
-  if (pathname === "/main.js" || pathname === "/styles.css") {
+  if (["/main.js", "/xr.js", "/styles.css"].includes(pathname)) {
     return { root: DISPLAY_ROOT, file: pathname.slice(1) };
   }
   if (pathname.startsWith("/vendor/three/")) {

@@ -2,11 +2,8 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { test, expect } from "@playwright/test";
 
-const STATE = "/tmp/vr-mcp-e2e-state.json";
-const shots = "/opt/cursor/artifacts/screenshots";
-
 function state() {
-  return JSON.parse(readFileSync(STATE, "utf8"));
+  return JSON.parse(process.env.VR_MCP_E2E_STATE);
 }
 
 async function tool(name, args, id) {
@@ -62,18 +59,22 @@ async function sample(page) {
   });
 }
 
-test("display renders show_scene, replays a panel, then clears", async ({ page }) => {
+test("display renders show_scene, replays a panel, then clears", async ({ page }, testInfo) => {
   const notes = [];
   page.on("pageerror", (error) => notes.push(`pageerror ${error.message}`));
   page.on("console", (message) => notes.push(`console ${message.type()} ${message.text()}`));
   const current = state();
+  const beforePath = testInfo.outputPath("01-before.png");
+  const scenePath = testInfo.outputPath("02-after-show-scene.png");
+  const replayPath = testInfo.outputPath("03-after-replay-panel.png");
+  const clearPath = testInfo.outputPath("04-after-clear.png");
   await page.goto(`http://localhost:${current.port}/`);
   await page.locator("#token").fill(current.pairing);
   await page.locator("#connect").click();
   await expect(page.locator("body")).toHaveAttribute("data-connected", "1", { timeout: 5000 });
 
   const before = await sample(page);
-  await page.screenshot({ path: `${shots}/01-before.png` });
+  await page.screenshot({ path: beforePath });
   expect(before.scene).toBe("");
   expect(before.orange).toBe(0);
 
@@ -87,7 +88,7 @@ test("display renders show_scene, replays a panel, then clears", async ({ page }
   await expect(page.locator("body")).toHaveAttribute("data-scene", "pedestal");
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const afterScene = await sample(page);
-  await page.screenshot({ path: `${shots}/02-after-show-scene.png` });
+  await page.screenshot({ path: scenePath });
   expect(afterScene.orange).toBeGreaterThan(before.orange);
 
   await page.evaluate(() => window.__display.disconnectForTest());
@@ -102,18 +103,18 @@ test("display renders show_scene, replays a panel, then clears", async ({ page }
   expect(missed.payload.status).toBe("queued");
   expect(missed.payload.delivered).toBe(false);
   await expect(page.locator("body")).toHaveAttribute("data-panels", "1", { timeout: 8000 });
-  await page.screenshot({ path: `${shots}/03-after-replay-panel.png` });
+  await page.screenshot({ path: replayPath });
 
   const cleared = await tool("clear", { request_id: "e2e-clear", scope: "all" }, 3);
   expect(cleared.payload.delivered).toBe(true);
   await expect(page.locator("body")).toHaveAttribute("data-scene", "");
   await expect(page.locator("body")).toHaveAttribute("data-panels", "0");
-  await page.screenshot({ path: `${shots}/04-after-clear.png` });
+  await page.screenshot({ path: clearPath });
 
-  const beforeHash = createHash("sha256").update(readFileSync(`${shots}/01-before.png`)).digest("hex");
-  const sceneHash = createHash("sha256").update(readFileSync(`${shots}/02-after-show-scene.png`)).digest("hex");
-  const clearHash = createHash("sha256").update(readFileSync(`${shots}/04-after-clear.png`)).digest("hex");
+  const beforeHash = createHash("sha256").update(readFileSync(beforePath)).digest("hex");
+  const sceneHash = createHash("sha256").update(readFileSync(scenePath)).digest("hex");
+  const clearHash = createHash("sha256").update(readFileSync(clearPath)).digest("hex");
   expect(sceneHash).not.toBe(beforeHash);
   expect(clearHash).not.toBe(sceneHash);
-  writeFileSync("/opt/cursor/artifacts/logs/e2e.log", `${notes.join("\n")}\nscene_orange=${afterScene.orange}\n`);
+  writeFileSync(testInfo.outputPath("e2e.log"), `${notes.join("\n")}\nscene_orange=${afterScene.orange}\n`);
 });

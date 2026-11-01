@@ -266,8 +266,6 @@ export function createHub(config, clock = Date.now) {
       return findSession(token, at);
     },
     attach(ws) {
-      if (socket && socket !== ws) socket.close(4410, "replaced");
-      socket = ws;
       let authed = false;
       let lastTraffic = now();
       const heartbeat = setInterval(() => {
@@ -315,7 +313,10 @@ export function createHub(config, clock = Date.now) {
           }
           authed = true;
           clearTimeout(authTimer);
-          if (socket !== ws) return;
+          // A pending or invalid handshake must not evict the active display.
+          const previous = socket;
+          socket = ws;
+          if (previous && previous !== ws) previous.close(4410, "replaced");
           send(ws, {
             v: 1,
             session_id: deviceId,
@@ -327,6 +328,7 @@ export function createHub(config, clock = Date.now) {
           replay(ws, lastSeq);
           return;
         }
+        if (socket !== ws) return;
         if (message.type === "pong" || message.type === "ping") {
           if (message.type === "ping") {
             send(ws, { v: 1, session_id: deviceId, request_id: "", seq: 0, type: "pong", body: {} });

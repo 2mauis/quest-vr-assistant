@@ -6,6 +6,8 @@
 
 ## 本地启动
 
+首次使用先在仓库目录运行 `npm ci`，按锁文件安装依赖。
+
 一个进程同时提供显示页、中继和只含 `/mcp` 的隧道端口。秘密没有默认值，未设置时进程拒绝启动。
 
 ```sh
@@ -22,6 +24,8 @@ export DEVICE_PAIRING_TOKEN='<PLACEHOLDER>'
 两个秘密各自至少 32 个字符，并且不能相同。在本机生成后只放在当前 shell 或私有环境文件里，不要写入仓库。
 
 浏览器打开 `http://localhost:8787/`，输入 `DEVICE_PAIRING_TOKEN`，再点连接。显示页、WebSocket 和配对只在 `PORT` 上。`TUNNEL_PORT` 只接受路径正好是 `/mcp` 的请求，其它路径返回 404。
+
+Quest 3 使用 USB 反向端口转发打开同一页面，步骤见[显示页与设备切换](docs/02-vr-app.md)。当前同时激活一个显示端；切到 Quest 后，桌面可点击「切回此设备」继续调试。沉浸式显示与实机手柄验收状态见[里程碑](docs/07-milestones.md)。
 
 ## 临时隧道与自定义连接器
 
@@ -40,6 +44,8 @@ cloudflared tunnel --url http://localhost:8788
 | 请求头的值 | `Bearer <PLACEHOLDER>` |
 
 `<random>.example.com` 换成隧道命令打印出来的主机名。令牌换成 `MCP_BEARER_SECRET`。不要把令牌放进 URL。本仓库不启动隧道，也不做公网部署。
+
+Grok Bot Apps 已验证的命令式接入见 [MCP 联调说明](docs/04-mcp.md#grok-bot-命令式连接器)：适配器在运行时读取安全变量，转发到同一 HTTPS MCP 服务。当前实测连接器名为 `quest-vr-display-live`，三个工具的显示回执与验收范围见[里程碑](docs/07-milestones.md)。
 
 ## 调用三个工具
 
@@ -70,10 +76,18 @@ node scripts/demo-tools.mjs
 
 ## 测试
 
+首次运行浏览器测试前，安装对应版本的无头 Chromium：
+
+```sh
+npx playwright install chromium --only-shell
+```
+
 ```sh
 npm test
 npm run test:e2e
 ```
+
+浏览器测试的截图与日志写入 `test-results/` 下各测试独立的输出目录。测试服务使用随机本地端口与临时秘密，测试结束时自动关闭，不影响正在运行的本地服务。
 
 `npm test` 覆盖启动失败、Bearer 401、隧道端口拒绝非 `/mcp`、2026-07-28 与 2025-11-25 的工具调用，以及断线后的序号补发。`npm run test:e2e` 用无头浏览器打开显示页，调用三个工具，并确认画面从空场景变为预设场景、补发面板，再被清除。本次自动化结果写在交付说明里；未在头显或托管端实机上跑过的项目不能写成已通过。
 

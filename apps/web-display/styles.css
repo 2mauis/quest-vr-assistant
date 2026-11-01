@@ -37,15 +37,17 @@ html, body {
 
 label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
 
-input, button {
+input, button, select {
   font: inherit;
   color: var(--ink);
   background: #101826;
   border: 1px solid var(--line);
   padding: 6px 10px;
+  min-height: 44px;
 }
 
 button { cursor: pointer; }
 button:disabled { opacity: 0.45; cursor: default; }
 
 #status { min-width: 8em; }
+#xr-status { font-size: 13px; }
