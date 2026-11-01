@@ -72,6 +72,7 @@ test("display renders show_scene, replays a panel, then clears", async ({ page }
   await page.locator("#token").fill(current.pairing);
   await page.locator("#connect").click();
   await expect(page.locator("body")).toHaveAttribute("data-connected", "1", { timeout: 5000 });
+  await expect(page.locator("#view")).toBeVisible();
 
   const before = await sample(page);
   await page.screenshot({ path: beforePath });
