@@ -1,7 +1,5 @@
-# VR MCP 模块
+# MCP 协议验证模块
 
-> 待 VPS 改版更新：由 services/relay 的同一进程加载，不单独监听。
+由 [本地验证服务](../relay/README.md) 同一进程加载，不独立监听。负责 Streamable HTTP、`server/discover`、工具发现及调用，接受 `2026-07-28` 与 `2025-11-25` 两种协议流程，详见[协议基线](../../docs/protocol-baseline.md)。
 
-负责 Streamable HTTP、`server/discover`、工具列表和工具调用。协议版本是 `2026-07-28`，并接受 `2025-11-25` 的初始化握手。工具定义以 [MCP 契约](../../docs/04-mcp.md) 为准。
-
-鉴权由中继在进入本模块之前完成。本模块不代理其它连接器的凭据，也不执行工具参数里的代码。显示页确认之前，结果里的 `delivered` 保持 false。
+鉴权在进入本模块前由服务检查。模块不执行工具参数中的代码，不代理其他连接器凭据；收到渲染 ACK 前 `delivered` 为 false。现有代码是原生迁移的契约参考，不代表已有 Android MCP、视觉输入或语音实现。
