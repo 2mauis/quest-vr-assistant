@@ -44,7 +44,11 @@ public final class HealthServerTest {
         check(send(server, "GET /healthz HTTP/1.1\r\n" + header + header + "\r\n").startsWith("HTTP/1.1 400"), "duplicate nonce rejected");
         check(send(server, "GET /healthz HTTP/1.1\r\nX-QVR-Probe-Nonce: invalid\r\n\r\n").startsWith("HTTP/1.1 400"), "nonce shape");
         check(send(server, "GET /healthz HTTP/1.1\r\nInvalid\r\n" + header + "\r\n").startsWith("HTTP/1.1 400"), "malformed header");
-        check(send(server, "GET /healthz HTTP/1.1\r\nX: " + String.join("", Collections.nCopies(4100, "x"))).startsWith("HTTP/1.1 431"), "bounded header");
+        String oversizedPrefix = "GET /healthz HTTP/1.1\r\nX: ";
+        // Reach the header limit without a terminator. Extra unread bytes can make
+        // macOS reset the connection on close and mask the already-written 431.
+        check(send(server, oversizedPrefix + String.join("", Collections.nCopies(4096 - oversizedPrefix.length(), "x")))
+            .startsWith("HTTP/1.1 431"), "bounded header");
         check(receipts.size() == 1, "rejections create no receipts");
         try (HealthServer second = new HealthServer(value -> {})) {
             check(!server.runNonce().equals(second.runNonce()), "new run has fresh nonce");

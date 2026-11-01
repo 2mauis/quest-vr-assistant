@@ -1,18 +1,35 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.questvr.tunnelprobe" android:versionCode="1" android:versionName="0.1-probe">
+    package="com.example.questvr.tunnelprobe" android:versionCode="3" android:versionName="0.3-browser">
     <uses-sdk android:minSdkVersion="28" android:targetSdkVersion="34" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
-    <application android:label="Quest Tunnel Probe" android:theme="@android:style/Theme.Material.Light.NoActionBar"
-        android:debuggable="true" android:allowBackup="false" android:extractNativeLibs="true">
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+    </queries>
+    <application android:label="Quest Assistant" android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:debuggable="true" android:allowBackup="false" android:extractNativeLibs="true"
+        android:usesCleartextTraffic="false" android:hardwareAccelerated="true">
         <activity android:name=".ProbeActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".WebActivity" android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout"
+            android:windowSoftInputMode="adjustResize" android:resizeableActivity="true" />
         <!-- Shell-only test control; no tokens or endpoints in intents. -->
         <activity android:name=".DebugControlActivity" android:exported="true"
             android:permission="android.permission.DUMP" android:excludeFromRecents="true" />

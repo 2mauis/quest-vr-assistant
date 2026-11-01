@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; media-src blob:">
+<title>麦克风检查</title>
+<style>
+body{font:18px system-ui;background:#151922;color:#f3f5fa;max-width:760px;margin:40px auto;padding:24px;line-height:1.6}
+button{font:inherit;padding:12px 20px;border:0;border-radius:10px;margin:6px;background:#91c8ff;color:#101820}
+button:disabled{opacity:.45}progress{width:100%;height:24px}pre{white-space:pre-wrap;color:#b9d6f7}
+</style>
+<h1>麦克风与音频检查</h1>
+<p>检查在此设备内完成，不上传或保存声音。请开始检查后说几句话，观察输入音量；播放提示音可检查耳机或扬声器。</p>
+<button id="start">开始麦克风检查</button><button id="stop" disabled>停止</button><button id="beep">播放提示音</button>
+<p>输入音量</p><progress id="level" max="1" value="0"></progress><pre id="result">尚未开始</pre>
+<script>
+const startButton=document.querySelector('#start'),stopButton=document.querySelector('#stop');
+const output=document.querySelector('#result'),level=document.querySelector('#level');
+let stream=null,context=null,sendPeer=null,receivePeer=null,timer=null,generation=0;
+let metrics={state:'idle',secure:isSecureContext,rtcAvailable:typeof RTCPeerConnection==='function',samples:0,peak:0,packetsSent:0,packetsReceived:0};
+const show=()=>{output.textContent=JSON.stringify(metrics,null,2);};
+function stop(){
+ generation++; clearInterval(timer); timer=null;
+ if(stream)stream.getTracks().forEach(t=>t.stop());
+ if(sendPeer)sendPeer.close();if(receivePeer)receivePeer.close();
+ if(context)context.close().catch(()=>{});
+ stream=context=sendPeer=receivePeer=null;metrics.state='stopped';metrics.trackState='ended';metrics.connection='closed';level.value=0;
+ startButton.disabled=false;stopButton.disabled=true;show();
+}
+startButton.onclick=async()=>{
+ const attempt=++generation;startButton.disabled=true;stopButton.disabled=false;
+ metrics={state:'requesting',secure:isSecureContext,rtcAvailable:typeof RTCPeerConnection==='function',samples:0,peak:0,packetsSent:0,packetsReceived:0};show();
+ try{
+  const opened=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true},video:false});
+  if(attempt!==generation){opened.getTracks().forEach(t=>t.stop());return;}
+  stream=opened;context=new AudioContext();await context.resume();
+  if(attempt!==generation)return;
+  const analyser=context.createAnalyser();analyser.fftSize=512;context.createMediaStreamSource(stream).connect(analyser);
+  const sender=new RTCPeerConnection({iceServers:[]}),receiver=new RTCPeerConnection({iceServers:[]});
+  sendPeer=sender;receivePeer=receiver;
+  const toSender=[],toReceiver=[];
+  sender.onicecandidate=e=>{if(e.candidate){if(receiver.remoteDescription)receiver.addIceCandidate(e.candidate).catch(()=>{});else toReceiver.push(e.candidate);}};
+  receiver.onicecandidate=e=>{if(e.candidate){if(sender.remoteDescription)sender.addIceCandidate(e.candidate).catch(()=>{});else toSender.push(e.candidate);}};
+  stream.getTracks().forEach(t=>sender.addTrack(t,stream));
+  await sender.setLocalDescription(await sender.createOffer());await receiver.setRemoteDescription(sender.localDescription);
+  for(const c of toReceiver)await receiver.addIceCandidate(c);
+  await receiver.setLocalDescription(await receiver.createAnswer());await sender.setRemoteDescription(receiver.localDescription);
+  for(const c of toSender)await sender.addIceCandidate(c);
+  if(attempt!==generation)return;
+  metrics.state='capturing';metrics.trackState=stream.getAudioTracks()[0].readyState;show();
+  const values=new Float32Array(analyser.fftSize);
+  timer=setInterval(async()=>{
+   if(attempt!==generation)return;
+   analyser.getFloatTimeDomainData(values);
+   const rms=Math.sqrt(values.reduce((sum,x)=>sum+x*x,0)/values.length);
+   metrics.samples++;metrics.peak=Math.max(metrics.peak,rms);level.value=Math.min(1,rms*8);
+   metrics.connection=sender.connectionState;
+   try{
+    const sent=await sender.getStats(),received=await receiver.getStats();
+    if(attempt!==generation)return;
+    sent.forEach(r=>{if(r.type==='outbound-rtp'&&r.kind==='audio')metrics.packetsSent=r.packetsSent;});
+    received.forEach(r=>{if(r.type==='inbound-rtp'&&r.kind==='audio')metrics.packetsReceived=r.packetsReceived;});
+    show();
+   }catch(_){}
+  },300);
+ }catch(error){if(attempt===generation){stop();metrics.state='failed';metrics.error=error.name;show();}}
+};
+stopButton.onclick=stop;
+document.querySelector('#beep').onclick=async()=>{
+ const audio=new AudioContext();await audio.resume();const wave=audio.createOscillator(),gain=audio.createGain();
+ gain.gain.value=.08;wave.frequency.value=660;wave.connect(gain).connect(audio.destination);wave.start();wave.stop(audio.currentTime+.25);
+ wave.onended=()=>audio.close();
+};
+addEventListener('pagehide',stop);show();
+</script></html>

@@ -10,6 +10,10 @@ java = Path(os.environ["JAVA_HOME"]) / "bin"
 with tempfile.TemporaryDirectory(prefix="quest-health-test-") as output:
     subprocess.run([str(java / "javac"), "-d", output,
                     str(root / "src/com/example/questvr/tunnelprobe/HealthServer.java"),
-                    str(root / "test/HealthServerTest.java")], check=True)
+                    str(root / "test/HealthServerTest.java"),
+                    str(root / "src/com/example/questvr/tunnelprobe/WebPolicy.java"),
+                    str(root / "test/WebPolicyTest.java")], check=True)
     subprocess.run([str(java / "java"), "-cp", output,
                     "com.example.questvr.tunnelprobe.HealthServerTest"], check=True)
+    subprocess.run([str(java / "java"), "-cp", output,
+                    "com.example.questvr.tunnelprobe.WebPolicyTest"], check=True)
