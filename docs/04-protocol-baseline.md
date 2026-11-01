@@ -31,6 +31,8 @@ schema 都是 object，列出 required，并且 `additionalProperties=false`。�
 
 `pose.scale` 为 0.1–3，位置分量在 -10 到 10，旋转分量在 -360 到 360。服务端不下载 glTF，因此字节大小不在服务端测量；校验的是协议、主机允许列表、后缀、URL 长度和缩放。
 
+下行正文里的 `show_scene` 与 `render_panel` 都带规范化后的 `anchor` 与 `pose`。`anchor` 为 world、floor、head、front、left、right；面板未填写时为 front。`pose` 缺省为零位移、零旋转、缩放 1。当前显示页把这些锚点画成固定坐标偏移，`head` 不跟随头部。原生客户端如何消费这些消息见 [评审](06-native-spatial-review.md)。
+
 ## 结果与补发
 
 工具结果放在 MCP 的 text content 中，并同时给出 `structuredContent`。字段为 `request_id`、`status`、`seq`、`delivered`、`error_code`。`status` 为 queued、rendered、offline、expired 或 rejected。参数错误使用 `isError`，协议错误使用 JSON-RPC 错误。
@@ -55,4 +57,4 @@ schema 都是 object，列出 required，并且 `additionalProperties=false`。�
 
 先核对授权与入口隔离，再实际调用工具，将请求、序号、ACK 与画面对齐。`Connected`、工具列表、健康响应或 `queued` 均不能代替显示确认。重试使用正确的幂等语义，避免复用旧请求后误判本次成功。
 
-历史 Grok 托管连接器采用静态 Bearer 的实际调用已通过，详见[验证记录](03-validation-baseline.md)。连接器配置中的秘密不得进入 URL、命令参数、截图或仓库；TLS 不能替代授权。Quest 语音与原生 App 联调按[新里程碑](02-milestones.md)单独验收。
+历史 Grok 托管连接器采用静态 Bearer 的实际调用已通过，详见[验证记录](03-validation-baseline.md)。连接器配置中的秘密不得进入 URL、命令参数、截图或仓库；TLS 不能替代授权。Quest 语音与原生 App 联调按[新里程碑](02-milestones.md)单独验收。原生显示端若复用本页，按[评审中的消费契约](06-native-spatial-review.md)验收，不把桌面 `delivered: true` 记成头显通过。

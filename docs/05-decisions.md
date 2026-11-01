@@ -43,3 +43,14 @@
 既有 Mac mini、Tailscale、Cloudflare Worker、frp 路线保持否决状态。Cloudflare Tunnel 与 Worker 承载工具逻辑不同；现有 Tunnel 选择不重新启用 Worker 路线。旧 VPS / Caddy / systemd 示例和容器构建材料已从当前分支删除，未部署的示例不作为验证证据。
 
 完整方案见[原生 MR 方案](01-native-spatial-plan.md)，实施顺序见[里程碑](02-milestones.md)。
+
+## 评审后仍待拍板
+
+[原生空间评审](06-native-spatial-review.md) 已覆盖到网页语音验收。上面的已确认项保持有效：官方网页走 Custom Tabs，改包 / Root 已停止，本机 MCP 仍是本分支记录的主线。下列事项仍要机主选择：
+
+- 在把 MCP 进程迁入 APK 之前，是否先用现有中继让网页语音触发三次显示工具，并在头显上取得 `delivered: true`。
+- 原生运行时是否定为 Spatial SDK + Compose。Custom Tab 由浏览器承载，不能当作该场景里的面板。
+- 面板是否必须在网页前台时仍作为系统窗口可见。
+- 公网入口继续用每次更换主机名的 Quick Tunnel，还是进入正式 VPS / 另行授权的稳定主机名。诊断用的具名健康隧道未接入中继。
+- 进程重启后是否必须补发旧命令。当前中继从 1 重新计数。
+- 首包从工具调用发出起算，还是从语音结束起算。网页语音验收没有延迟样本。
