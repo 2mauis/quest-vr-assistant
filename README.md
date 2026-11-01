@@ -1,5 +1,7 @@
 # Quest 3 显示层
 
+新方案确定采用原生 Quest 应用：由 Grok Bot 驱动透视 / MR 空间助手，在同一体验中摆放多个面板并联动现实视觉。[原生 MR 空间助手方案](docs/08-native-spatial-options.md)比较原生技术栈、去 MBP 依赖、MCP 部署与后台恢复，供需求核对，尚未批准实施。以下启动说明描述归档检查点的既有实现，不表示新原生方案已经实现。
+
 本地可运行的显示链路：托管端通过 MCP 调用 `show_scene`、`render_panel` 和 `clear`；本机 Node 进程把命令经 WebSocket 推到浏览器里的 three.js 页面。页面按 WebXR 方式编写，便于以后放到头显浏览器。语音和对话留在托管端的 Grok Bot，本仓库不实现模型 API 客户端。
 
 **待 VPS 改版更新**：公网正式部署仍是 VPS 上的 Caddy + Node，Node 由 systemd 管理。当前调试阶段只在本机监听。
@@ -99,5 +101,6 @@ npm run test:e2e
 4. [MCP 契约](docs/04-mcp.md)
 5. [VPS 部署契约](docs/05-vps-relay.md)与[检查表](deploy/vps-checklist.md)
 6. [费用](docs/06-cost.md)、[里程碑](docs/07-milestones.md)、[决策](docs/decisions.md)
+7. [原生 MR 空间助手方案（供需求核对）](docs/08-native-spatial-options.md)
 
 施工入口：[显示页](apps/web-display/index.html)、[MCP 模块](services/vr-mcp-server/README.md)、[中继进程](services/relay/README.md)、[Caddy 示例](deploy/caddy/Caddyfile.example)、[systemd 示例](deploy/systemd/vr-mcp-relay.service.example)。
