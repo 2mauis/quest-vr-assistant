@@ -1,6 +1,6 @@
 # 验证基线与实机记录
 
-当前结论（2026-11-01）：隔离适配构建先通过 ADB shell 回环，随后自研诊断 APK 通过 App UID、随包组件执行、公网健康回环及基本生命周期验证。下文保留先前失败和分阶段证据，最新结果见末节；正式 MCP / MR、Grok 语音、网络恢复和常驻能力仍未通过。
+当前结论（2026-11-01）：自研诊断 APK 已通过 App UID、随包组件执行、公网健康回环及基本生命周期验证；后续 Grok Bot 实启在登录前被 Google Play 提示阻塞。下文按阶段记录，正式 MCP / MR、Grok 语音、网络恢复和常驻能力仍未通过。
 
 ## 历史代码检查点
 
@@ -160,3 +160,22 @@ func init() {
 另外仅用设备包管理查询确认已安装 Grok Bot：包 `ai.x.grok.bot`，版本 `1.18.0` / versionCode `1155`，minSdk `28`、targetSdk `36`，Launcher 为 `ai.x.grok.bot/.MainActivity`。没有打开其会话、读取聊天或触发语音；包查询不是 Grok 联动通过的证据。
 
 下一步仍需正式 MCP 授权与工具实现、连接凭据安全导入 / 轮换、网络变化恢复、Grok 语音 / 双 App 共存和 MR 渲染验收。本次调试 APK 的安装成功或 Service 存活均不证明这些能力。
+
+## Grok Bot 启动与登录检查：当前包受阻
+
+2026-11-01，用户要求在 Quest 完成 Grok Bot 登录后，实际打开已核对的 `ai.x.grok.bot`（`1.18.0` / `1155`）。该轮没有修改项目运行代码。
+
+| 检查 | 结果 |
+|---|---|
+| 实际启动 | 界面要求确保 Google Play 已启用并为最新版本，只有关闭按钮；尚未出现登录控件 |
+| 设备组件 | 包管理查询确认 Play Store、Google Play Services 和 Google Services Framework 均未安装；不是已有组件被禁用 |
+| 安装来源 | 设备记录为第三方分发安装，未通过 Google Play 安装 |
+| 复核 | 保留数据重新启动，并用标准 MAIN / LAUNCHER Intent 再次打开，仍读到相同 Google Play 提示；设备处于 Awake 状态 |
+| 官方渠道 | Grok Bot 移动文档的 Android 下载链接指向 Google Play；本轮官方文档及下载页检查未找到可验证的 Quest / 无 Play 直装发行包，不能据此断言以后不会提供 |
+| 操作边界 | 未输入账号秘密、未完成登录、未读取聊天或触发语音；没有清除应用数据、重装应用、安装 GMS、修改权限或系统设置。临时截图和界面转储已清理 |
+
+当前证据足以确认这一发行包的启动检查阻止了登录，不能把问题归因于账号密码、MCP 或 Tunnel，也不能据此推导所有 Grok Bot 版本都无法支持 Quest。Google Play 自动保护可能包含安装来源检查；本轮未反编译应用或确认其具体内部机制，不将可能原因写成定论。
+
+Meta 当前兼容指南说明 Horizon OS 不含 GMS，并要求开发方替换或避开相关依赖。下一步先确认可在该环境运行的官方发行包，再继续账号登录与语音联合验收；本轮没有复制其他设备会话或修改第三方 APK。
+
+官方资料（查阅日期同上）：Grok Bot `/grok-bot/mobile`、`/grok-bot/get-started`；Meta `/vr/documentation/android-apps/port-an-existing-app/` 的 Unsupported dependencies；Google Play `/googleplay/android-developer/answer/10183279`。这些资料是兼容性背景，登录结果以设备实测为准。

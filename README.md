@@ -12,6 +12,8 @@
 
 适配基于 `cloudflared` 2026.10.7，使用当前网络已有 DNS 和 Android 系统 CA，保留正常 TLS 校验。重复启动、停止、重新启动、15 秒超时及主进程异常退出均有实机证据。验证结束撤下临时健康路由、卸载测试 APK，保留专用云端配置和本地构建产物。下一步是正式 MCP / 凭据管理、网络恢复、Grok 语音和双 App 共存；这些能力尚未完成。
 
+**Grok 登录当前受阻：**已安装的 Android 版在启动时要求 Google Play，设备未安装相关组件，标准 Launcher 再次启动仍未进入登录页。需要先确认可在此环境运行的官方发行包；包已安装不等于可登录或能完成语音联动。详情见[实机记录](docs/03-validation-baseline.md)。
+
 1. [原生 MR 方案与责任边界](docs/01-native-spatial-plan.md)
 2. [里程碑与验收顺序](docs/02-milestones.md)
 3. [历史验证与当前实机证据](docs/03-validation-baseline.md)
