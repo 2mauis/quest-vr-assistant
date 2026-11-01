@@ -141,6 +141,7 @@ export function loadConfig(env) {
     allowedOrigins: parseOriginList(env.ALLOWED_ORIGINS, "ALLOWED_ORIGINS"),
     assetAllowedOrigins: parseOriginList(env.ASSET_ALLOWED_ORIGINS, "ASSET_ALLOWED_ORIGINS"),
     sessionTtlMs: integer(env, "SESSION_TTL_SECONDS", 900, 60, 86400) * 1000,
+    deviceGrantTtlMs: integer(env, "DEVICE_GRANT_TTL_SECONDS", 90 * 86400, 3600, 365 * 86400) * 1000,
     pairingTtlMs: integer(env, "PAIRING_TTL_SECONDS", 600, 60, 86400) * 1000,
     pairingMaxAttempts: integer(env, "PAIRING_MAX_ATTEMPTS", 5, 1, 20),
     pairingRatePerMinute: integer(env, "PAIRING_RATE_PER_MINUTE", 5, 1, 60),

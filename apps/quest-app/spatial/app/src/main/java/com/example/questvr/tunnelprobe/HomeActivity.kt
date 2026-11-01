@@ -57,8 +57,12 @@ class HomeActivity : ComponentActivity() {
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text("Grok 对话", style = MaterialTheme.typography.titleMedium)
-                                Text("沿用浏览器登录。网页打开期间暂停空间回执，返回工作区后继续。")
-                                Button(onClick = { BrowserPage.open(this@HomeActivity) }) { Text("打开 Grok") }
+                                Text("宽屏网页沿用浏览器登录，与空间工作区并排显示。")
+                                Button(onClick = {
+                                    startActivity(Intent(this@HomeActivity, WorkspaceActivity::class.java)
+                                        .setAction(Intent.ACTION_MAIN).putExtra(WorkspaceActivity.OPEN_GROK, true)
+                                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                }) { Text("打开 Grok 与工作区") }
                                 TextButton(onClick = { startActivity(Intent(this@HomeActivity, WebActivity::class.java)) }) {
                                     Text("备用内嵌网页 · 独立登录")
                                 }
@@ -84,6 +88,7 @@ class HomeActivity : ComponentActivity() {
                                                 val session = client.pair(normalized, pairingToken)
                                                 if (store.endpoint != normalized) WorkspaceRuntime.engine.reset()
                                                 store.save(session); endpoint = normalized; paired = true
+                                                WorkspaceRuntime.connectionAllowed.value = true
                                                 WorkspaceRuntime.explicitReconnectRequired = false
                                                 WorkspaceRuntime.status.value = ConnectionStatus("paired", WorkspaceRuntime.engine.lastSeq)
                                                 message = "配对完成，可以进入工作区。"
@@ -97,6 +102,8 @@ class HomeActivity : ComponentActivity() {
                                         }
                                     }) { Text(if (busy) "连接中…" else "配对") }
                                     TextButton(enabled = !busy, onClick = {
+                                        WorkspaceRuntime.connectionAllowed.value = false
+                                        WorkspaceRuntime.explicitReconnectRequired = true
                                         store.clear(); paired = false; token = ""
                                         WorkspaceRuntime.engine.reset()
                                         WorkspaceRuntime.status.value = ConnectionStatus("disconnected")

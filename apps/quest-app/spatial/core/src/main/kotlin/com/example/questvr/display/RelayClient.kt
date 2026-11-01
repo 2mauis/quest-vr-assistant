@@ -12,7 +12,11 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import okio.ByteString
 
-data class DisplaySession(val endpoint: String, val token: String, val expiresAt: Long)
+data class DisplaySession(val endpoint: String, val token: String, val expiresAt: Long,
+    val refreshToken: String? = null, val refreshExpiresAt: Long = 0) {
+    fun canRefresh(at: Long = System.currentTimeMillis()) = refreshToken != null && refreshExpiresAt > at
+    fun canRestore(at: Long = System.currentTimeMillis()) = expiresAt > at || canRefresh(at)
+}
 class PairingFailure(val status: Int) : IOException("pairing_$status")
 data class ConnectionStatus(val phase: String, val seq: Long = 0)
 
@@ -21,27 +25,50 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
     .followRedirects(false).followSslRedirects(false)
     .connectTimeout(10, TimeUnit.SECONDS).readTimeout(65, TimeUnit.SECONDS).build()) {
 
-    suspend fun pair(endpoint: String, token: String): DisplaySession = withContext(Dispatchers.IO) {
+    suspend fun pair(endpoint: String, token: String): DisplaySession {
         require(token.length >= 32)
-        val body = buildJsonObject { put("token", token) }.toString()
-        http.newCall(Request.Builder().url("$endpoint/api/device/pair")
-            .post(body.toRequestBody("application/json".toMediaType())).build()).execute().use { response ->
+        return requestSession(endpoint, "pair", buildJsonObject { put("token", token); put("remember", true) })
+    }
+
+    suspend fun refresh(session: DisplaySession): DisplaySession {
+        require(session.canRefresh())
+        return requestSession(session.endpoint, "refresh", buildJsonObject { put("refresh_token", session.refreshToken) })
+    }
+
+    private suspend fun requestSession(endpoint: String, action: String, body: JsonObject): DisplaySession = withContext(Dispatchers.IO) {
+        http.newCall(Request.Builder().url("$endpoint/api/device/$action")
+            .post(body.toString().toRequestBody("application/json".toMediaType())).build()).execute().use { response ->
             if (!response.isSuccessful) throw PairingFailure(response.code)
             val result = Json.parseToJsonElement(response.body!!.string()).jsonObject
             val session = result.string("session_token")
             require(session.length in 32..512)
             val seconds = result["expires_in"]!!.jsonPrimitive.long
             require(seconds in 1..86400)
-            DisplaySession(endpoint, session, System.currentTimeMillis() + seconds * 1000)
+            val refresh = result["refresh_token"]?.jsonPrimitive?.content
+            val refreshSeconds = result["refresh_expires_in"]?.jsonPrimitive?.long ?: 0
+            require(refresh == null || (refresh.length in 32..1024 && refreshSeconds in 1..31_536_000))
+            DisplaySession(endpoint, session, System.currentTimeMillis() + seconds * 1000,
+                refresh, if (refresh == null) 0 else System.currentTimeMillis() + refreshSeconds * 1000)
         }
     }
 
-    suspend fun assetOrigins(endpoint: String): Set<String> = withContext(Dispatchers.IO) {
-        http.newCall(Request.Builder().url("$endpoint/api/display/config").build()).execute().use { response ->
-            require(response.isSuccessful) { "display_config" }
-            val data = Json.parseToJsonElement(response.body!!.string()).jsonObject
-            data["asset_origins"]!!.jsonArray.map { DisplayProtocol.endpoint(it.jsonPrimitive.content, false) }.toSet()
+    suspend fun assetOrigins(endpoint: String, onRetry: () -> Unit = {}): Set<String> = withContext(Dispatchers.IO) {
+        var attempt = 0
+        while (true) {
+            try {
+                return@withContext http.newCall(Request.Builder().url("$endpoint/api/display/config").build()).execute().use { response ->
+                    if (response.code >= 500) throw IOException("display_config_unavailable")
+                    require(response.isSuccessful) { "display_config" }
+                    val data = Json.parseToJsonElement(response.body!!.string()).jsonObject
+                    data["asset_origins"]!!.jsonArray.map { DisplayProtocol.endpoint(it.jsonPrimitive.content, false) }.toSet()
+                }
+            } catch (error: IOException) {
+                currentCoroutineContext().ensureActive()
+                onRetry()
+                delay(retryDelay(attempt++))
+            }
         }
+        @Suppress("UNREACHABLE_CODE") emptySet()
     }
 
     private sealed interface Event {
@@ -51,12 +78,31 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
     }
     private var current: WebSocket? = null
 
-    /** Runs until cancellation, takeover, expiry, or a rendering failure; only one consumer. */
+    /** Restores short sessions from the device grant; cancellation and takeover remain terminal. */
     suspend fun run(session: DisplaySession, engine: DisplayEngine,
-        status: (ConnectionStatus) -> Unit, present: suspend (WorkspaceState) -> Unit) {
+        status: (ConnectionStatus) -> Unit, onSessionRenewed: (DisplaySession) -> Unit = {},
+        present: suspend (WorkspaceState) -> Unit) {
         var attempt = 0
+        var active = session
+        var renewRequired = false
+        var retriedAuthorization = false
         while (currentCoroutineContext().isActive) {
-            if (System.currentTimeMillis() >= session.expiresAt) { status(ConnectionStatus("pairing_required", engine.lastSeq)); return }
+            if (renewRequired || System.currentTimeMillis() >= active.expiresAt) {
+                if (!active.canRefresh()) { status(ConnectionStatus("pairing_required", engine.lastSeq)); return }
+                status(ConnectionStatus("reconnecting", engine.lastSeq))
+                try {
+                    active = refresh(active)
+                    onSessionRenewed(active)
+                    renewRequired = false
+                } catch (error: CancellationException) { throw error }
+                catch (error: Exception) {
+                    if (error is PairingFailure && error.status in setOf(400, 401, 403, 404)) {
+                        status(ConnectionStatus("pairing_required", engine.lastSeq)); return
+                    }
+                    delay(if (error is PairingFailure && error.status == 429) 60_000L else retryDelay(attempt++))
+                    continue
+                }
+            }
             status(ConnectionStatus(if (attempt == 0) "connecting" else "reconnecting", engine.lastSeq))
             val events = Channel<Event>(128)
             var overflow = false
@@ -67,7 +113,7 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
                     socket.cancel()
                 }
             }
-            val ws = http.newWebSocket(Request.Builder().url(session.endpoint + "/ws").build(), object : WebSocketListener() {
+            val ws = http.newWebSocket(Request.Builder().url(active.endpoint + "/ws").build(), object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) = emit(Event.Open, webSocket)
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     if (text.toByteArray().size > DisplayProtocol.MAX_MESSAGE_BYTES) {
@@ -90,11 +136,15 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
                 while (currentCoroutineContext().isActive) {
                     when (val event = withTimeout(if (authenticated) 60_000L else 10_000L) { events.receive() }) {
                         Event.Open -> ws.send(DisplayProtocol.encode("auth", body = buildJsonObject {
-                            put("session_token", session.token); put("last_seq", engine.lastSeq)
+                            put("session_token", active.token); put("last_seq", engine.lastSeq)
                         }))
                         is Event.Closed -> {
-                            terminal = event.code in setOf(4401, 4410)
-                            if (terminal) status(ConnectionStatus(if (event.code == 4410) "taken_over" else "pairing_required", engine.lastSeq))
+                            if (event.code == 4401 && active.canRefresh() && !retriedAuthorization) {
+                                renewRequired = true; retriedAuthorization = true
+                            } else {
+                                terminal = event.code in setOf(4401, 4410)
+                                if (terminal) status(ConnectionStatus(if (event.code == 4410) "taken_over" else "pairing_required", engine.lastSeq))
+                            }
                             break
                         }
                         is Event.Text -> {
@@ -102,7 +152,7 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
                             if (!authenticated) {
                                 require(message.type == "auth_ok") { "auth_required" }
                                 engine.authenticate(message.session)
-                                authenticated = true; attempt = 0
+                                authenticated = true; attempt = 0; retriedAuthorization = false
                                 status(ConnectionStatus("connected", engine.lastSeq))
                             } else when (message.type) {
                                 "ping" -> ws.send(DisplayProtocol.encode("pong"))
@@ -129,11 +179,12 @@ class RelayClient(private val http: OkHttpClient = OkHttpClient.Builder()
                 ws.cancel(); events.cancel()
             }
             if (terminal) return
-            val delayMs = (1000L shl attempt.coerceAtMost(5)).coerceAtMost(30_000L)
-            attempt++
-            delay((delayMs * Random.nextDouble(.8, 1.2)).toLong())
+            if (!renewRequired) delay(retryDelay(attempt++))
         }
     }
+
+    private fun retryDelay(attempt: Int): Long =
+        (((1000L shl attempt.coerceAtMost(5)).coerceAtMost(30_000L)) * Random.nextDouble(.8, 1.2)).toLong()
 
     fun interaction(kind: String, target: String) {
         require(kind in setOf("select", "activate"))

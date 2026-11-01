@@ -33,6 +33,17 @@ val generatePresets = tasks.register<Exec>("generatePresets") {
     commandLine("python3", rootProject.file("generate-presets.py"), generatedAssets.get().dir("presets").asFile)
 }
 val probeApk = File(legacy, "build/quest-tunnel-probe.apk")
+// Optional local automation layer; never included in normal / release or CI builds.
+val xrOperator = providers.environmentVariable("QVR_XR_OPERATOR_DIR").orNull?.let { file(it) }
+val operatorOutput = layout.buildDirectory.dir("generated/xr-operator")
+val prepareOperator = if (xrOperator != null) tasks.register<Sync>("prepareXrOperator") {
+    val library = File(xrOperator, "android/libXrApiLayer_METAX_operator.so")
+    val manifest = File(xrOperator, "android/XrApiLayer_METAX_operator.json")
+    require(library.isFile && manifest.isFile) { "QVR_XR_OPERATOR_DIR must contain the official Android layer" }
+    into(operatorOutput)
+    from(library) { into("jni/arm64-v8a") }
+    from(manifest) { into("assets/openxr/1/api_layers/implicit.d") }
+} else null
 val prepareProbe = tasks.register<Sync>("prepareProbe") {
     into(layout.buildDirectory.dir("generated/probe"))
     if (probeApk.exists()) {
@@ -71,6 +82,10 @@ android {
         assets.srcDirs(File(legacy, "assets"), generatedAssets, layout.buildDirectory.dir("generated/probe/assets"))
         jniLibs.srcDir(layout.buildDirectory.dir("generated/probe/lib"))
     }
+    if (prepareOperator != null) sourceSets["debug"].apply {
+        jniLibs.srcDir(operatorOutput.map { it.dir("jni") })
+        assets.srcDir(operatorOutput.map { it.dir("assets") })
+    }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -84,6 +99,7 @@ android {
     }
 }
 tasks.named("preBuild") { dependsOn(generateWebConfig, generatePresets, prepareProbe) }
+if (prepareOperator != null) tasks.matching { it.name == "preDebugBuild" }.configureEach { dependsOn(prepareOperator) }
 dependencies {
     implementation(project(":core"))
     implementation("androidx.activity:activity-compose:1.9.2")

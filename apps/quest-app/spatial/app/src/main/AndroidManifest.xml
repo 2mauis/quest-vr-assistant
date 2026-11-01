@@ -1,4 +1,6 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:metavr="http://schemas.meta.com/metavr-sdk">
+    <metavr:uses-metavr-sdk metavr:minSdkVersion="69" metavr:targetSdkVersion="69" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
@@ -25,12 +27,19 @@
         <meta-data android:name="com.oculus.supportedDevices" android:value="quest3|questpro|quest2" />
         <meta-data android:name="com.oculus.vr.focusaware" android:value="true" />
         <meta-data android:name="com.oculus.handtracking.version" android:value="V2.0" />
-        <activity android:name=".HomeActivity" android:exported="true">
-            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        <activity android:name=".HomeActivity" android:exported="true" android:screenOrientation="landscape" android:resizeableActivity="true">
+            <layout android:defaultWidth="1280dp" android:defaultHeight="720dp" />
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /><category android:name="com.oculus.intent.category.2D" /></intent-filter>
+        </activity>
+        <activity android:name=".GrokWindowActivity" android:exported="false" android:resizeableActivity="true"
+            android:screenOrientation="landscape" android:taskAffinity="com.example.questvr.tunnelprobe.grok"
+            android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden|keyboard">
+            <layout android:defaultWidth="1280dp" android:defaultHeight="720dp" />
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.DEFAULT" /><category android:name="com.oculus.intent.category.2D" /></intent-filter>
         </activity>
         <activity android:name=".WorkspaceActivity" android:exported="false" android:launchMode="singleTask"
             android:configChanges="screenSize|screenLayout|orientation|keyboardHidden|keyboard|navigation|uiMode">
-            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="com.oculus.intent.category.VR" /></intent-filter>
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.DEFAULT" /><category android:name="com.oculus.intent.category.VR" /></intent-filter>
         </activity>
         <activity android:name=".WebActivity" android:exported="false" android:resizeableActivity="true"
             android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout" android:windowSoftInputMode="adjustResize" />

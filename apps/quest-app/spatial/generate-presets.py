@@ -50,8 +50,16 @@ def write_glb(path, shapes):
             document['accessors'].append(dict(bufferView=view, componentType=5126, count=len(values), type='VEC3',
                 min=[min(v[i] for v in values) for i in range(3)], max=[max(v[i] for v in values) for i in range(3)]))
         index = len(document['meshes'])
+        # Spatial SDK's native loader requires an index accessor, even for triangle soup.
+        start = len(binary)
+        for vertex in range(len(positions)): binary.extend(struct.pack('<I', vertex))
+        view = len(document['bufferViews'])
+        document['bufferViews'].append(dict(buffer=0, byteOffset=start, byteLength=len(binary)-start, target=34963))
+        indices = len(document['accessors'])
+        document['accessors'].append(dict(bufferView=view, componentType=5125, count=len(positions), type='SCALAR',
+            min=[0], max=[len(positions)-1]))
         document['materials'].append(dict(pbrMetallicRoughness=dict(baseColorFactor=[*color, 1], metallicFactor=.25, roughnessFactor=.4), doubleSided=True))
-        document['meshes'].append(dict(primitives=[dict(attributes=dict(POSITION=accessor_ids[0], NORMAL=accessor_ids[1]), material=index)]))
+        document['meshes'].append(dict(primitives=[dict(attributes=dict(POSITION=accessor_ids[0], NORMAL=accessor_ids[1]), indices=indices, material=index)]))
         document['nodes'].append(dict(mesh=index, translation=position, scale=scale))
     document['buffers'] = [dict(byteLength=len(binary))]
     body = json.dumps(document, separators=(',', ':')).encode()

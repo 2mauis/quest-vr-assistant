@@ -187,7 +187,8 @@ export function createApp(config) {
       sendJson(res, 200, { events: hub.interactions() });
       return;
     }
-    if (url.pathname === "/api/device/pair") {
+    if (url.pathname === "/api/device/pair" || url.pathname === "/api/device/refresh") {
+      const refreshing = url.pathname === "/api/device/refresh";
       if (!localOriginAllowed(req)) {
         sendJson(res, 403, { error: "forbidden" });
         return;
@@ -210,11 +211,13 @@ export function createApp(config) {
         sendJson(res, 400, { error: "invalid_request" });
         return;
       }
-      if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some((key) => key !== "token")) {
+      const allowedKeys = refreshing ? ["refresh_token"] : ["token", "remember"];
+      if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some((key) => !allowedKeys.includes(key)) ||
+          (!refreshing && body.remember !== undefined && typeof body.remember !== "boolean")) {
         sendJson(res, 400, { error: "invalid_request" });
         return;
       }
-      const outcome = hub.pair(body.token);
+      const outcome = refreshing ? hub.refresh(body.refresh_token) : hub.pair(body.token, undefined, body.remember === true);
       if (!outcome.ok) {
         if (outcome.status === 429) {
           sendJson(res, 429, { error: "rate_limited" }, { "retry-after": "60" });

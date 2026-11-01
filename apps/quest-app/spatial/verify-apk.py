@@ -14,6 +14,36 @@ import zipfile
 ROOT = Path(__file__).resolve().parent
 
 
+def verify_preset(data):
+    magic, version, length, json_size, chunk_type = struct.unpack("<5I", data[:20])
+    if (magic, version, length, chunk_type) != (0x46546C67, 2, len(data), 0x4E4F534A):
+        raise RuntimeError("Invalid preset GLB")
+    document = json.loads(data[20:20 + json_size])
+    if not document["nodes"] or any("uri" in buffer for buffer in document["buffers"]):
+        raise RuntimeError("Preset must contain a self-contained scene")
+    binary_size, binary_type = struct.unpack_from("<2I", data, 20 + json_size)
+    binary = data[28 + json_size:]
+    if binary_type != 0x004E4942 or binary_size != len(binary):
+        raise RuntimeError("Invalid preset binary chunk")
+    for mesh in document["meshes"]:
+        for primitive in mesh["primitives"]:
+            index = primitive.get("indices", -1)
+            if not 0 <= index < len(document["accessors"]):
+                raise RuntimeError("Preset requires a valid index accessor for Spatial SDK")
+            accessor = document["accessors"][index]
+            if accessor["type"] != "SCALAR" or accessor["componentType"] != 5125 or accessor["count"] % 3:
+                raise RuntimeError("Invalid preset triangle indices")
+            view = document["bufferViews"][accessor["bufferView"]]
+            offset = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+            end = offset + 4 * accessor["count"]
+            if view["buffer"] != 0 or end > len(binary) or end > view.get("byteOffset", 0) + view["byteLength"]:
+                raise RuntimeError("Preset index buffer out of bounds")
+            count = document["accessors"][primitive["attributes"]["POSITION"]]["count"]
+            indices = struct.unpack_from("<" + "I" * accessor["count"], binary, offset)
+            if not indices or max(indices) >= count:
+                raise RuntimeError("Preset vertex index out of bounds")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--commit", required=True)
@@ -48,13 +78,7 @@ def main():
         if not any(name.startswith("assets/third_party/") for name in names):
             raise RuntimeError("Native component license notices missing")
         for preset in ("grid", "orbit", "crystal", "pedestal"):
-            data = bundle.read("assets/presets/" + preset + ".glb")
-            magic, version, length, json_size, chunk_type = struct.unpack("<5I", data[:20])
-            if (magic, version, length, chunk_type) != (0x46546C67, 2, len(data), 0x4E4F534A):
-                raise RuntimeError("Invalid preset GLB")
-            document = json.loads(data[20:20 + json_size])
-            if not document["nodes"] or any("uri" in buffer for buffer in document["buffers"]):
-                raise RuntimeError("Preset must contain a self-contained scene")
+            verify_preset(bundle.read("assets/presets/" + preset + ".glb"))
         web_url = os.environ.get("QVR_WEB_START_URL", "https://app.example.com/")
         dex_files = [name for name in names if re.fullmatch(r"classes\d*\.dex", name)]
         if not any(web_url.encode("ascii") in bundle.read(name) for name in dex_files):

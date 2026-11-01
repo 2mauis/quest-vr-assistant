@@ -19,7 +19,9 @@ import org.json.JSONObject
 object WorkspaceRuntime {
     val engine = DisplayEngine()
     val status = MutableStateFlow(ConnectionStatus("disconnected"))
+    val connectionAllowed = MutableStateFlow(true)
     var explicitReconnectRequired = false
+    var debugCommand: ((String) -> Unit)? = null
 }
 
 class DisplaySessionStore(context: Context) {
@@ -41,7 +43,8 @@ class DisplaySessionStore(context: Context) {
     fun save(session: DisplaySession) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val data = JSONObject().put("endpoint", session.endpoint).put("token", session.token)
-            .put("expires", session.expiresAt).toString().toByteArray(Charsets.UTF_8)
+            .put("expires", session.expiresAt).put("refresh", session.refreshToken)
+            .put("refreshExpires", session.refreshExpiresAt).toString().toByteArray(Charsets.UTF_8)
         val encrypted = cipher.doFinal(data)
         prefs.edit().putString("session", Base64.encodeToString(cipher.iv + encrypted, Base64.NO_WRAP))
             .putString("endpoint", session.endpoint).apply()
@@ -56,8 +59,9 @@ class DisplaySessionStore(context: Context) {
                 init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, data.copyOfRange(0, 12)))
             }
             val json = JSONObject(String(cipher.doFinal(data.copyOfRange(12, data.size)), Charsets.UTF_8))
-            DisplaySession(json.getString("endpoint"), json.getString("token"), json.getLong("expires"))
-                .takeIf { it.expiresAt > System.currentTimeMillis() }.also { if (it == null) clear() }
+            DisplaySession(json.getString("endpoint"), json.getString("token"), json.getLong("expires"),
+                json.optString("refresh").takeIf { it.isNotEmpty() && it != "null" }, json.optLong("refreshExpires"))
+                .takeIf { it.canRestore() }.also { if (it == null) clear() }
         } catch (_: Exception) { clear(); null }
     }
     fun clear() { prefs.edit().remove("session").apply() }

@@ -1,3 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <application android:networkSecurityConfig="@xml/development_network" />
+    <uses-feature android:name="com.oculus.experimental.enabled" android:required="false" />
+    <application android:networkSecurityConfig="@xml/development_network">
+        <activity android:name=".DebugDisplayActivity" android:exported="true"
+            android:permission="android.permission.DUMP" android:excludeFromRecents="true" />
+        <receiver android:name=".DebugWorkspaceReceiver" android:exported="true"
+            android:permission="android.permission.DUMP" />
+    </application>
 </manifest>

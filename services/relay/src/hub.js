@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { WebSocket } from "ws";
 import { safeEqual } from "./security.js";
+import { createDeviceGrants } from "./device-grants.js";
 import { validateToolCall, wireMessage } from "../../vr-mcp-server/src/tools.js";
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
@@ -28,6 +29,7 @@ export function createHub(config, clock = Date.now) {
   const now = () => clock();
   const deviceId = `d${randomBytes(16).toString("hex")}`;
   const sessions = new Map();
+  const grants = createDeviceGrants(config);
   const buffer = [];
   const idempotency = new Map();
   const waiters = new Map();
@@ -41,6 +43,18 @@ export function createHub(config, clock = Date.now) {
   let pairingFailures = 0;
   let pairingLockedUntil = 0;
   const allowPair = createLimiter(config.pairingRatePerMinute, 60_000);
+  const allowRefresh = createLimiter(60, 60_000);
+
+  function issueSession(at, grant) {
+    const sessionToken = randomBytes(32).toString("hex");
+    const sessionId = `s${randomBytes(12).toString("hex")}`;
+    sessions.set(sessionToken, { sessionId, expiresAt: at + config.sessionTtlMs });
+    return { ok: true, status: 200, body: {
+      session_id: sessionId, session_token: sessionToken,
+      expires_in: Math.floor(config.sessionTtlMs / 1000),
+      ...(grant ? { refresh_token: grant.token, refresh_expires_in: Math.floor((grant.expiresAt - at) / 1000) } : {}),
+    } };
+  }
 
   function highWater() {
     return nextSeq - 1;
@@ -231,7 +245,7 @@ export function createHub(config, clock = Date.now) {
     interactions() {
       return interactions.map((item) => ({ ...item }));
     },
-    pair(token, at = now()) {
+    pair(token, at = now(), remember = false) {
       prune(at);
       if (at < pairingLockedUntil) {
         return { ok: false, status: 429 };
@@ -249,18 +263,14 @@ export function createHub(config, clock = Date.now) {
       }
       pairingFailures = 0;
       pairingLockedUntil = 0;
-      const sessionToken = randomBytes(32).toString("hex");
-      const sessionId = `s${randomBytes(12).toString("hex")}`;
-      sessions.set(sessionToken, { sessionId, expiresAt: at + config.sessionTtlMs });
-      return {
-        ok: true,
-        status: 200,
-        body: {
-          session_id: sessionId,
-          session_token: sessionToken,
-          expires_in: Math.floor(config.sessionTtlMs / 1000),
-        },
-      };
+      return issueSession(at, remember ? grants.issue(at) : null);
+    },
+    refresh(token, at = now()) {
+      prune(at);
+      if (!allowRefresh(at)) return { ok: false, status: 429 };
+      const grant = grants.verify(token, at);
+      if (!grant) return { ok: false, status: 401 };
+      return issueSession(at, grants.issue(at, grant.subject));
     },
     authorizeSocket(token, at = now()) {
       return findSession(token, at);
