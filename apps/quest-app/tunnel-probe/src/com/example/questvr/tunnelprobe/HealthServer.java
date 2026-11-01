@@ -42,8 +42,8 @@ public final class HealthServer implements AutoCloseable {
                     if (closed) break;
                     socket.setSoTimeout(1500);
                     serve(socket);
-                } catch (IOException ignored) {
-                    // Malformed, disconnected or timed-out clients do not kill the listener.
+                } catch (Exception ignored) {
+                    // Malformed clients and teardown must not kill the app process.
                 } finally { current = null; }
             }
         }, "probe-health");

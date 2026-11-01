@@ -47,8 +47,14 @@ public final class ProbeService extends Service {
             .setContentText("Temporary health check · maximum 10 minutes")
             .setContentIntent(open).addAction(new Notification.Action.Builder(null, "Stop", stop).build())
             .setOngoing(true).build();
-        if (Build.VERSION.SDK_INT >= 34) startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
-        else startForeground(1, notification);
+        try {
+            if (Build.VERSION.SDK_INT >= 34) startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            else startForeground(1, notification);
+        } catch (RuntimeException error) {
+            active = false;
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         int seconds = intent == null ? 600 : Math.max(15, Math.min(600, intent.getIntExtra("seconds", 600)));
         active = true;
         session = new Session(seconds);
@@ -135,7 +141,7 @@ public final class ProbeService extends Service {
                         if (tail.length() > 65536) tail.delete(0, tail.length() - 65536);
                         save("tunnel.log", tail.toString());
                     }
-                } catch (IOException ignored) { }
+                } catch (Exception ignored) { }
             }, "probe-log");
             thread.setDaemon(true); thread.start(); return thread;
         }

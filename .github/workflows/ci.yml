@@ -2,6 +2,8 @@ name: ci
 
 on:
   push:
+    branches:
+      - "refactor/**"
     paths:
       - "apps/web-display/**"
       - "services/**"

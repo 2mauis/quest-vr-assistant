@@ -5,6 +5,8 @@ name: quest-apk
 
 on:
   push:
+    branches:
+      - "refactor/**"
     paths:
       - "apps/quest-app/**"
       - ".github/workflows/apk-probe.yml"

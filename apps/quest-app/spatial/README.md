@@ -1,6 +1,8 @@
 # Quest Assistant 原生主体
 
-`0.4-spatial` 是阶段 1 的原生显示客户端：Meta Spatial SDK 0.14.0 + Compose，连接现有 Node 中继。已用本机原签名覆盖更新 Quest，保留登录数据。具名 `/mcp` 的三个工具已取得原生显示端回执；宽屏网页与活动空间帧有设备端证据。真实 VR 截图已确认网页、可读面板和模型同时可见；输入操作和网页语音联动分别记录，详见[实机记录](../../../docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
+> 双轨重构后，`WorkspaceActivity` 是薄壳：Spatial SDK 放置 Grok Custom Tab 窗口和加载网页显示的 WebView 面板。三维内容由网页显示绘制。`DisplayEngine` 仍参与 `:core:test`，工作区不再调用它。详见 [双轨架构](../../../docs/07-architecture-two-track.md)。
+
+`0.4-spatial` 仍使用 Meta Spatial SDK 0.14.0 + Compose。此前 Kotlin 自绘路径的实机回执不能自动转成这条 WebView 路径的头显验收。历史画面证据见[实机记录](../../../docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
 
 ## 已实现
 

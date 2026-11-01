@@ -41,7 +41,7 @@ class HomeActivity : ComponentActivity() {
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(statusText(state.phase), style = MaterialTheme.typography.titleMedium)
-                                Text("已呈现序号 ${WorkspaceRuntime.engine.lastSeq} · ${WorkspaceRuntime.engine.state.panels.size} 块面板")
+                                Text("工作区里的网页显示面板呈现三维内容。")
                                 Button(onClick = {
                                     if (store.load() == null) { paired = false; message = "连接已过期，请重新配对。" }
                                     else {

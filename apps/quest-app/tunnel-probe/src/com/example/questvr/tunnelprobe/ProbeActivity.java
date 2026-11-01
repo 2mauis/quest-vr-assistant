@@ -47,7 +47,12 @@ public final class ProbeActivity extends Activity {
         layout.addView(scope);
         status = new TextView(this); status.setTextSize(19); layout.addView(status);
         Button start = new Button(this); start.setText("Start 10-minute probe");
-        start.setOnClickListener(v -> startForegroundService(new Intent(this, ProbeService.class)));
+        start.setOnClickListener(v -> {
+            try { startForegroundService(new Intent(this, ProbeService.class)); }
+            catch (RuntimeException error) {
+                status.setText("State: failed\nCould not start the probe service");
+            }
+        });
         layout.addView(start);
         Button stop = new Button(this); stop.setText("Stop and remove probe token");
         stop.setOnClickListener(v -> {

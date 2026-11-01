@@ -3,7 +3,11 @@ package com.example.questvr.display
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 
-/** Only the serialized transport consumer calls this engine. No cursor survives process death. */
+/**
+ * Protocol reducer kept for unit tests.
+ * The spatial shell no longer presents with this engine; the web display page does.
+ * No cursor survives process death.
+ */
 class DisplayEngine {
     var state = WorkspaceState(); private set
     var lastSeq = 0L; private set

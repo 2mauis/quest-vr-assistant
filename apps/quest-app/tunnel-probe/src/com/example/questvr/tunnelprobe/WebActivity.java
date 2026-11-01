@@ -46,10 +46,12 @@ public final class WebActivity extends Activity {
     private ValueCallback<Uri[]> fileResult;
     private final List<String> suspendedUrls = new ArrayList<>();
     private boolean visible;
+    private boolean destroyed;
     private View fullscreen;
     private WebChromeClient.CustomViewCallback fullscreenCallback;
 
-    private WebView current() { return pages.isEmpty() ? null : pages.get(pages.size() - 1); }
+    private WebView current() { return destroyed || pages.isEmpty() ? null : pages.get(pages.size() - 1); }
+    private boolean alive(WebView view) { return !destroyed && view != null && pages.contains(view); }
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
     private void message(String text) { Toast.makeText(this, text, Toast.LENGTH_LONG).show(); }
 
@@ -61,17 +63,19 @@ public final class WebActivity extends Activity {
         LinearLayout bar = new LinearLayout(this);
         addButton(bar, "连接", () -> finish());
         addButton(bar, "返回", this::goBack);
-        addButton(bar, "主页", () -> current().loadUrl(WebBuildConfig.START_URL));
+        addButton(bar, "主页", () -> { WebView page = current(); if (page != null) page.loadUrl(WebBuildConfig.START_URL); });
         address = new TextView(this);
         address.setSingleLine(true); address.setTextSize(12);
         bar.addView(address, new LinearLayout.LayoutParams(0, dp(48), 1));
         Button menu = addButton(bar, "更多", () -> {});
         menu.setOnClickListener(v -> {
             PopupMenu popup = new PopupMenu(this, menu);
-            popup.getMenu().add("刷新").setOnMenuItemClickListener(i -> { current().reload(); return true; });
-            popup.getMenu().add("麦克风检查").setOnMenuItemClickListener(i -> { current().loadUrl(WebPolicy.VOICE_CHECK); return true; });
+            popup.getMenu().add("刷新").setOnMenuItemClickListener(i -> { WebView page = current(); if (page != null) page.reload(); return true; });
+            popup.getMenu().add("麦克风检查").setOnMenuItemClickListener(i -> { WebView page = current(); if (page != null) page.loadUrl(WebPolicy.VOICE_CHECK); return true; });
             popup.getMenu().add("在浏览器打开").setOnMenuItemClickListener(i -> {
-                String url = current().getUrl();
+                WebView page = current();
+                if (page == null) return true;
+                String url = page.getUrl();
                 if (WebPolicy.origin(url) != null && !WebPolicy.origin(url).equals(WebPolicy.origin(WebPolicy.VOICE_CHECK))) {
                     try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)).addCategory(Intent.CATEGORY_BROWSABLE)); }
                     catch (ActivityNotFoundException error) { message("未找到可用浏览器"); }
@@ -84,9 +88,14 @@ public final class WebActivity extends Activity {
         content = new FrameLayout(this);
         root.addView(content, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(root);
-        WebView page = createPage();
-        String last = getPreferences(0).getString("last_page", WebBuildConfig.START_URL);
-        page.loadUrl(WebPolicy.rememberedPage(last, WebBuildConfig.START_URL));
+        try {
+            WebView page = createPage();
+            String last = getPreferences(0).getString("last_page", WebBuildConfig.START_URL);
+            page.loadUrl(WebPolicy.rememberedPage(last, WebBuildConfig.START_URL));
+        } catch (RuntimeException error) {
+            message("网页组件不可用，请稍后重试");
+            finish();
+        }
     }
 
     private Button addButton(LinearLayout bar, String title, Runnable action) {
@@ -99,6 +108,7 @@ public final class WebActivity extends Activity {
     }
 
     private WebView createPage() {
+        if (destroyed) return null;
         WebView page = new WebView(this);
         WebSettings settings = page.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -120,10 +130,12 @@ public final class WebActivity extends Activity {
                 return true;
             }
             @Override public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                if (!alive(view)) return;
                 if (pending != null && permissionOwner == view) cancelPermission();
-                if (view == current()) address.setText(WebPolicy.origin(url) == null ? "正在打开…" : Uri.parse(url).getHost());
+                if (view == current()) address.setText(url == null || WebPolicy.origin(url) == null ? "正在打开…" : Uri.parse(url).getHost());
             }
             @Override public void onPageFinished(WebView view, String url) {
+                if (!alive(view)) return;
                 CookieManager.getInstance().flush();
                 if (view == current() && WebPolicy.origin(url) != null && WebPolicy.origin(url).equals(WebPolicy.origin(WebBuildConfig.START_URL)))
                     getPreferences(0).edit().putString("last_page", WebPolicy.rememberedPage(url, WebBuildConfig.START_URL)).apply();
@@ -132,6 +144,7 @@ public final class WebActivity extends Activity {
                 handler.cancel(); message("网站证书验证失败，请检查网络后重试");
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (!alive(view)) return;
                 if (request.isForMainFrame() && view == current()) address.setText("页面未加载，请重试");
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
@@ -146,7 +159,7 @@ public final class WebActivity extends Activity {
         });
         page.setWebChromeClient(new WebChromeClient() {
             @Override public void onPermissionRequest(PermissionRequest request) {
-                if (!visible || page != current() || !WebPolicy.microphoneAllowed(request.getOrigin().toString(), page.getUrl(), WebBuildConfig.START_URL)
+                if (destroyed || !visible || page != current() || !WebPolicy.microphoneAllowed(request.getOrigin().toString(), page.getUrl(), WebBuildConfig.START_URL)
                     || !Arrays.asList(request.getResources()).contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE)) { request.deny(); return; }
                 cancelPermission();
                 pending = request; permissionOwner = page;
@@ -157,9 +170,10 @@ public final class WebActivity extends Activity {
                 if (pending == request) { pending = null; permissionOwner = null; }
             }
             @Override public boolean onCreateWindow(WebView view, boolean dialog, boolean userGesture, Message result) {
-                if (!userGesture || pages.size() >= 4) return false;
+                if (destroyed || !userGesture || pages.size() >= 4) return false;
                 cancelPermission();
                 WebView child = createPage();
+                if (child == null) return false;
                 ((WebView.WebViewTransport) result.obj).setWebView(child); result.sendToTarget();
                 return true;
             }
@@ -217,8 +231,11 @@ public final class WebActivity extends Activity {
     private void closePopup() {
         cancelPermission();
         WebView page = pages.remove(pages.size() - 1); content.removeView(page); page.destroy();
-        current().setVisibility(View.VISIBLE);
-        address.setText(Uri.parse(current().getUrl() == null ? WebBuildConfig.START_URL : current().getUrl()).getHost());
+        WebView visiblePage = current();
+        if (visiblePage == null) return;
+        visiblePage.setVisibility(View.VISIBLE);
+        String url = visiblePage.getUrl();
+        address.setText(Uri.parse(url == null ? WebBuildConfig.START_URL : url).getHost());
     }
     private void hideFullscreen() {
         if (fullscreen == null) return;
@@ -227,14 +244,15 @@ public final class WebActivity extends Activity {
         if (callback != null) callback.onCustomViewHidden();
     }
     private void goBack() {
+        WebView page = current();
         if (fullscreen != null) hideFullscreen();
-        else if (current().canGoBack()) current().goBack();
+        else if (page != null && page.canGoBack()) page.goBack();
         else if (pages.size() > 1) closePopup();
         else finish();
     }
     @Override public void onBackPressed() { goBack(); }
     @Override protected void onStart() {
-        super.onStart(); visible = true;
+        super.onStart(); if (destroyed) return; visible = true;
         for (WebView page : pages) page.onResume();
         for (int i = 0; i < suspendedUrls.size() && i < pages.size(); i++) pages.get(i).loadUrl(suspendedUrls.get(i));
         suspendedUrls.clear();
@@ -243,6 +261,7 @@ public final class WebActivity extends Activity {
     @Override protected void onPause() { CookieManager.getInstance().flush(); super.onPause(); }
     @Override protected void onStop() {
         visible = false;
+        if (destroyed) { super.onStop(); return; }
         // The system permission/file picker can temporarily cover the activity.
         // Otherwise unload documents so microphone tracks cannot continue in the background.
         if (pending == null && fileResult == null && current() != null) {
@@ -257,6 +276,7 @@ public final class WebActivity extends Activity {
         super.onStop();
     }
     @Override protected void onDestroy() {
+        destroyed = true;
         cancelPermission();
         if (fileResult != null) { fileResult.onReceiveValue(null); fileResult = null; }
         hideFullscreen();
