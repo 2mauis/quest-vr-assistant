@@ -30,9 +30,13 @@ backups/
 node_modules/
 dist/
 build/
+test-results/
+playwright-report/
+blob-report/
 .gradle/
 .idea/
 .vscode/
+__pycache__/
 Library/
 Temp/
 Obj/

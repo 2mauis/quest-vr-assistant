@@ -1,30 +1,48 @@
-# Node 中转宿主施工边界
+# 本地协议验证服务
 
-> 待 VPS 改版更新：公网中转仅使用 VPS、Caddy 与 systemd。
+此 Node 进程保留作协议 / 桌面显示验证基线，不是已完成的 Quest 原生运行时。[原生主线](../../docs/01-native-spatial-plan.md)与[验收状态](../../docs/03-validation-baseline.md)单独记录。
 
-当前只有说明，无业务代码。以后产物契约为 /opt/vr-mcp-relay/dist/index.js，由一个 Node 进程承载 MCP 模块、WSS、配对、设备会话、队列、健康检查和受控 webhook 发送。接收 SIGTERM 后停止新请求、有限排空并退出。
+`src/index.js` 加载 MCP、配对、WebSocket、有界内存队列及桌面显示页。`HOST` / `PORT` 提供显示、配对与 WebSocket；`TUNNEL_HOST` / `TUNNEL_PORT` 只处理精确 `/mcp`，其他路径返回 404。两个监听均只允许 localhost。
 
-环境文件每项均需解析校验；缺失、占位或非法值应拒绝启动，不在错误日志中打印值。以下是 [模板](../../config/.env.example)的填写契约：
+## 启动与配置
 
-| 变量 | 私有部署值或规则 |
+在仓库根目录执行 `npm ci` 安装锁定依赖。环境变量模板为 [.env.example](.env.example)，启动器只读取已导出的环境，不会自动读取模板或 `.env` 文件。真实值只放在当前 shell 或仓库外的私有文件；两项秘密至少各 32 字符、互不相同且不能保留占位符。
+
+```sh
+export HOST=localhost
+export PORT=8787
+export TUNNEL_HOST=localhost
+export TUNNEL_PORT=8788
+export PUBLIC_BASE_URL=http://localhost:8787
+export MCP_BEARER_SECRET='<PLACEHOLDER>'
+export DEVICE_PAIRING_TOKEN='<PLACEHOLDER>'
+./scripts/start-local.sh
+```
+
+替换私有环境中的占位符后启动。浏览器打开 `http://localhost:8787/`，用配对口令连接；另一终端沿用环境执行 `npm run demo` 可调用三个工具。只有渲染 ACK 才返回 `delivered=true`；`queued` 不代表显示成功。当前只保留一个鉴权后的活动显示端，切换后旧端停止自动抢占。
+
+| 配置 | 规则 / 默认值 |
 |---|---|
-| NODE_ENV | production |
-| HOST / PORT | localhost / 8787，仅回环监听 |
-| PUBLIC_BASE_URL | https://vr.example.com，私有部署替换 |
-| STATE_DIR | /var/lib/vr-mcp-relay |
-| MCP_AUTH_MODE | 静态头模式为 bearer；其它模式须先实现并通过兼容验证 |
-| MCP_BEARER_SECRET | <PLACEHOLDER>，独立生成与轮换，不用作设备凭据 |
-| DEVICE_SESSION_SIGNING_SECRET | <PLACEHOLDER>，独立生成与轮换 |
-| ROUTINE_WEBHOOK_URL | https://vr.example.com/routine 为格式占位，必须私有配置真实受信 webhook；不是本服务已实现路由 |
-| ROUTINE_WEBHOOK_SECRET | <PLACEHOLDER>，只用于 webhook 请求鉴权，不嵌入 URL |
-| ALLOWED_ORIGINS | https://vr.example.com，逗号分隔允许源，禁止通配 |
-| ASSET_ALLOWED_ORIGINS | https://vr.example.com，默认关闭任意外部抓取 |
-| SESSION_TTL_SECONDS / PAIRING_TTL_SECONDS | 900 / 600 |
-| PAIRING_MAX_ATTEMPTS | 5 |
-| QUEUE_MAX_MESSAGES / QUEUE_TTL_SECONDS | 100 / 300 |
-| LOG_LEVEL | info，脱敏日志 |
-| VOICE_API_ENABLED | false，默认不调用付费语音 |
-| VOICE_API_SECRET | <PLACEHOLDER>，关闭语音时不使用，开启前私有填写 |
-| VOICE_DAILY_BUDGET_USD | 默认 0；开启前由机主确认预算与计量规则 |
+| `HOST`、`TUNNEL_HOST` | 必须为 localhost |
+| `PORT`、`TUNNEL_PORT` | 必填且互不相同；自动化测试允许 0 分配随机端口 |
+| `PUBLIC_BASE_URL` | 本地 HTTP 仅 localhost；其余须 HTTPS；拒绝 IP、用户信息、查询和片段 |
+| `MCP_BEARER_SECRET`、`DEVICE_PAIRING_TOKEN` | 必填、至少 32 字符、不同、无首尾空白、非占位符 |
+| `ALLOWED_ORIGINS`、`ASSET_ALLOWED_ORIGINS` | 可选，逗号分隔精确来源，不接受通配符；显示自身来源不会放行 MCP 端口 |
+| `SESSION_TTL_SECONDS`、`PAIRING_TTL_SECONDS` | 默认 900 / 600 秒 |
+| `PAIRING_MAX_ATTEMPTS`、`PAIRING_RATE_PER_MINUTE` | 默认 5 / 5 |
+| `QUEUE_MAX_MESSAGES`、`QUEUE_TTL_SECONDS` | 默认 100 条 / 300 秒 |
+| `IDEMPOTENCY_TTL_SECONDS`、`ACK_WAIT_MS` | 默认 300 秒 / 2000 毫秒 |
+| `MCP_RATE_PER_MINUTE`、`LOG_LEVEL` | 默认 60 / info；日志级别 error、info、debug |
 
-URL、枚举、数值范围、密钥强度与模式依赖必须严格检查。所有启用的凭据至少含 32 字节随机熵；禁用模块的占位凭据不得被消费。持久设备授权存储须限制权限、支持撤销；队列与去重表为内存态，重启换会话并清空面板。实现日志脱敏、限流、出站目标固定与 webhook 请求去重，按部署检查表验证。
+真实校验和范围由 [config.js](src/config.js) 执行，正文上限 256 KiB。SIGTERM 关闭监听；配对、队列和幂等状态只在内存，重启后需重新配对。日志不记录秘密或面板正文。公网入口与 Quest 探针不由此启动命令创建，当前探针也不连接本服务。
+
+## 基线测试
+
+在仓库根目录执行：
+
+```sh
+npm test
+npm run test:e2e
+```
+
+E2E 首次使用需安装对应的无头浏览器：`npx playwright install chromium --only-shell`。测试使用随机本地端口与临时秘密并在结束后关闭，输出在忽略的 `test-results/`；模拟 XR 不能代替头显实测。契约见[协议基线](../../docs/04-protocol-baseline.md)。

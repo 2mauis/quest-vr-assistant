@@ -1,0 +1,22 @@
+{
+  "name": "vr-mcp-relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node services/relay/src/index.js",
+    "demo": "node scripts/demo-tools.mjs",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "three": "0.170.0",
+    "ws": "8.21.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
