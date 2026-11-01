@@ -19,6 +19,12 @@
 
 规范中的 HTTP 授权资料描述的是可选的 OAuth 配置。本服务没有实现该配置，也不假装已经完成发现端点。若托管端强制要求 OAuth，需要另一次实现，不能用静态头冒充。
 
+## 显示配对与自动恢复
+
+显示设备首次向显示端口的 `POST /api/device/pair` 提交配对口令，可额外设置 `remember: true`，获得短期 `session_token` 和独立的 `refresh_token` / `refresh_expires_in`。省略该字段时保持旧浏览器行为。恢复授权是带用途隔离的 HMAC 签名凭据，默认 90 天滚动有效，不是配对口令或 MCP Bearer。
+
+`POST /api/device/refresh` 只接受 `refresh_token`，成功返回新短期会话和新的有效期。该路由仅在显示端口开放，执行来源、4 KiB 正文和限流检查，响应禁止缓存；公网 MCP 端口返回 404。原生端将两类凭据经 Keystore 加密保存，短期会话过期或收到 `4401` 时自动续期。无效 / 过期授权、连续拒绝或配对密钥轮换才要求重新配对；`4410` 接管与主动移除连接不自动抢回。恢复授权活过中继进程重启，不恢复旧队列、场景或幂等记录；目前只能轮换配对密钥整体撤销，尚无单设备撤销接口。
+
 ## 工具
 
 schema 都是 object，列出 required，并且 `additionalProperties=false`。标识字段是 1–64 个 ASCII 字母、数字、下划线或短横线。
@@ -31,6 +37,8 @@ schema 都是 object，列出 required，并且 `additionalProperties=false`。�
 
 `pose.scale` 为 0.1–3，位置分量在 -10 到 10，旋转分量在 -360 到 360。服务端不下载 glTF，因此字节大小不在服务端测量；校验的是协议、主机允许列表、后缀、URL 长度和缩放。
 
+下行正文里的 `show_scene` 与 `render_panel` 都带规范化后的 `anchor` 与 `pose`。`anchor` 为 world、floor、head、front、left、right；面板未填写时为 front。`pose` 缺省为零位移、零旋转、缩放 1。当前显示页把这些锚点画成固定坐标偏移，`head` 不跟随头部。原生客户端如何消费这些消息见 [评审](06-native-spatial-review.md)。
+
 ## 结果与补发
 
 工具结果放在 MCP 的 text content 中，并同时给出 `structuredContent`。字段为 `request_id`、`status`、`seq`、`delivered`、`error_code`。`status` 为 queued、rendered、offline、expired 或 rejected。参数错误使用 `isError`，协议错误使用 JSON-RPC 错误。
@@ -39,7 +47,7 @@ schema 都是 object，列出 required，并且 `additionalProperties=false`。�
 
 每个配对保留最近 100 条、最长 5 分钟。重连时页面提交最后连续序号；缺号时发送当前场景快照，而不是跳号。快照不含外部对话。队列只在内存中。
 
-中继只保留一个已鉴权的活动显示连接。`auth` 通过后才接管，并以关闭码 `4410` 通知旧页面停止自动重连；用户可主动切回。`4401` 表示需要重新配对。旧连接的迟到 ACK 和交互不再处理。页面对下载、渲染和 ACK 串行处理，模型加载失败时暂停，避免后续累计 ACK 把失败命令误记成已显示。
+中继只保留一个已鉴权的活动显示连接。`auth` 通过后才接管，并以关闭码 `4410` 通知旧页面停止自动重连；用户可主动切回。`4401` 表示短期会话无效；持有有效恢复授权的原生端先自动续期，否则要求重新配对。旧连接的迟到 ACK 和交互不再处理。页面对下载、渲染和 ACK 串行处理，模型加载失败时暂停，避免后续累计 ACK 把失败命令误记成已显示。
 
 正文上限 256 KiB。每个 Bearer 每分钟 60 次，配对失败每分钟另有上限。超过后返回 429 和 `Retry-After`。
 
@@ -55,4 +63,6 @@ schema 都是 object，列出 required，并且 `additionalProperties=false`。�
 
 先核对授权与入口隔离，再实际调用工具，将请求、序号、ACK 与画面对齐。`Connected`、工具列表、健康响应或 `queued` 均不能代替显示确认。重试使用正确的幂等语义，避免复用旧请求后误判本次成功。
 
-历史 Grok 托管连接器采用静态 Bearer 的实际调用已通过，详见[验证记录](03-validation-baseline.md)。连接器配置中的秘密不得进入 URL、命令参数、截图或仓库；TLS 不能替代授权。Quest 语音与原生 App 联调按[新里程碑](02-milestones.md)单独验收。
+历史 Grok 托管连接器采用静态 Bearer 的实际调用已通过，详见[验证记录](03-validation-baseline.md)。连接器配置中的秘密不得进入 URL、命令参数、截图或仓库；TLS 不能替代授权。Quest 语音与原生 App 联调按[新里程碑](02-milestones.md)单独验收。原生显示端若复用本页，按[评审中的消费契约](06-native-spatial-review.md)验收，不把桌面 `delivered: true` 记成头显通过。
+
+2026-11-01 阶段 1 沿用本页，并收窄验收：用户移动面板只发 `interaction`，不回写 `pose`；进程重启后不要求补发旧命令，`seq` 持久化以后再做。首包从工具调用发出计到该序号首次可见。这些边界见 [决策](05-decisions.md)。

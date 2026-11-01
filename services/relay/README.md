@@ -1,6 +1,6 @@
 # 本地协议验证服务
 
-此 Node 进程保留作协议 / 桌面显示验证基线，不是已完成的 Quest 原生运行时。[原生主线](../../docs/01-native-spatial-plan.md)与[验收状态](../../docs/03-validation-baseline.md)单独记录。
+此 Node 进程是阶段 1 的中继。2026-11-01 已拍板：网页语音先调用本进程的 `/mcp`，头显取得 `delivered: true` 之后，才把 MCP 迁入 APK。[决策](../../docs/05-decisions.md)与[评审](../../docs/06-native-spatial-review.md)记录边界。它还不是 Quest 原生运行时。
 
 `src/index.js` 加载 MCP、配对、WebSocket、有界内存队列及桌面显示页。`HOST` / `PORT` 提供显示、配对与 WebSocket；`TUNNEL_HOST` / `TUNNEL_PORT` 只处理精确 `/mcp`，其他路径返回 404。两个监听均只允许 localhost。
 
@@ -29,12 +29,15 @@ export DEVICE_PAIRING_TOKEN='<PLACEHOLDER>'
 | `MCP_BEARER_SECRET`、`DEVICE_PAIRING_TOKEN` | 必填、至少 32 字符、不同、无首尾空白、非占位符 |
 | `ALLOWED_ORIGINS`、`ASSET_ALLOWED_ORIGINS` | 可选，逗号分隔精确来源，不接受通配符；显示自身来源不会放行 MCP 端口 |
 | `SESSION_TTL_SECONDS`、`PAIRING_TTL_SECONDS` | 默认 900 / 600 秒 |
+| `DEVICE_GRANT_TTL_SECONDS` | 默认 7776000 秒（90 天），范围 1 小时至 365 天；仅用于已选择记住配对的显示设备 |
 | `PAIRING_MAX_ATTEMPTS`、`PAIRING_RATE_PER_MINUTE` | 默认 5 / 5 |
 | `QUEUE_MAX_MESSAGES`、`QUEUE_TTL_SECONDS` | 默认 100 条 / 300 秒 |
 | `IDEMPOTENCY_TTL_SECONDS`、`ACK_WAIT_MS` | 默认 300 秒 / 2000 毫秒 |
 | `MCP_RATE_PER_MINUTE`、`LOG_LEVEL` | 默认 60 / info；日志级别 error、info、debug |
 
-真实校验和范围由 [config.js](src/config.js) 执行，正文上限 256 KiB。SIGTERM 关闭监听；配对、队列和幂等状态只在内存，重启后需重新配对。日志不记录秘密或面板正文。公网入口与 Quest 探针不由此启动命令创建，当前探针也不连接本服务。
+真实校验和范围由 [config.js](src/config.js) 执行，正文上限 256 KiB。SIGTERM 关闭监听；短期会话、队列和幂等状态只在内存。原生客户端持有独立的显示恢复授权，可在中继重启或短期会话到期后取得新会话；旧浏览器配对行为不变。恢复授权不包含 MCP 权限，轮换 `DEVICE_PAIRING_TOKEN` 后全部失效；尚无按设备单独撤销的管理接口。日志不记录秘密或面板正文。公网入口与 Quest 探针不由此启动命令创建，当前探针也不连接本服务。
+
+具名 Tunnel 的当前状态、私有凭据分工、固定入口模板与切换步骤见[正式入口说明](../../config/cloudflared/README.md)。`PUBLIC_BASE_URL` 不是 Tunnel 创建 / 启动参数；固定 MCP 入口单独使用 `MCP_PUBLIC_URL`。本机已按用户授权应用精确 `/mcp` 路由并切换 `qvr`；配置 env 本身不会自动创建或应用云端路由。
 
 ## 基线测试
 

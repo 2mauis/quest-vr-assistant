@@ -2,17 +2,19 @@
 
 ## 已确认范围
 
-先读 README、docs/05-decisions.md、docs/02-milestones.md 和相关实现；检查工作区，保留不属于本次任务的修改。
+先读 README、docs/06-native-spatial-review.md、docs/05-decisions.md、docs/02-milestones.md 和相关实现；检查工作区，保留不属于本次任务的修改。
 
-产品主线是 Quest 本机 MCP、自研原生 MR / 透视视觉工作区、已安装 Grok Bot App 的现有语音与对话。Cloudflare HTTPS / Tunnel 连接托管工具端与 Quest，本机 MCP 负责授权和工具逻辑。不增加模型 API 客户端或自建语音层，不自动改换为常在线服务端主线。
+docs/06 是对照主线中继与六段里程碑的评审，覆盖到网页语音验收。语音走同一 App 任务栈里的官方网页 Custom Tabs，用户已验收登录和基础语音。后续 `apps/quest-app/spatial` 的原生显示主体已构建，用户要求完整联调集中到主体开发后；本机 MCP 与恢复仍待实现。不要把旧网页验收或新工程编译写成头显工具回执、真实画面或首包分位数已经通过。
 
-两款 App 指日常交互。隧道优先随自研 APK 管理；内置不可行但 Quest 独立运行实测可行时，允许把自动启动的后台辅助组件作为部署候选，不承诺恰好两个 APK，不预选 Termux 或其他安装载体。具体安装、自启、权限和永久入口变更以用户当次授权为准。
+本分支已记录的长期拓扑仍是 Quest 本机 MCP 与官方网页语音。2026-11-01 阶段 1 已拍板：先用现有中继让网页语音触发 `show_scene`、`render_panel`、`clear`，头显取得 `delivered: true`；运行时为 Spatial SDK + Compose。Quick Tunnel、重启后不补发、不回写 `pose`、网页前台不要求系统窗口，都不阻塞阶段 1。不改写 `f3fc808` 的作者。详见 docs/05-decisions.md。不增加模型 API 客户端或自建语音层。
+
+早期「两款日常交互 App」已被同一 App 内的网页页替代。隧道仍优先随自研 APK 管理；内置不可行但 Quest 独立运行实测可行时，允许把自动启动的后台辅助组件作为部署候选。具体安装、自启、权限和永久入口变更以用户当次授权为准。原生显示若开工，消费 docs/04 与 docs/06 的工具语义和回执。
 
 ## 实现与证据
 
-现有 Node / 桌面显示代码是协议验证基线，契约见 docs/04-protocol-baseline.md；正式原生 MR App 尚未实现。apps/quest-app/tunnel-probe 是已通过 App UID 与短时健康回环验证的诊断 APK，构建与测试见该目录 README，不代表正式 MCP 或常驻部署。保留运行代码、脚本、测试及其必要配置，不用清理旧文档的任务删除运行依赖。不存在必须部署 VPS 的前置要求。
+现有 Node / 桌面显示代码是协议验证基线，契约见 docs/04-protocol-baseline.md；原生显示主体见 apps/quest-app/spatial，实机联合验收待做。apps/quest-app/tunnel-probe 是已通过 App UID 与短时健康回环验证的诊断 APK，构建与测试见该目录 README，不代表正式 MCP 或常驻部署。保留运行代码、脚本、测试及其必要配置，不用清理旧文档的任务删除运行依赖。不存在必须部署 VPS 的前置要求。
 
-当前授权的 Tunnel POC 仅使用隔离临时文件、进程和固定无敏感健康响应；不得借此公开现有 MCP、显示、配对或私有服务。探针结束只清理本次拥有的进程与文件。安装后台辅助组件、开机自启、修改设备权限、睡眠、网络、代理或信任配置须另有明确授权；不为探针绕过 TLS 校验。
+隔离 Tunnel POC 已结束。用户后续明确授权现有专用具名 Tunnel 改接阶段 1 中继的精确 `/mcp`，本机 qvr 已切换具名模式，状态见 config/cloudflared/README.md；显示、配对和其他私有服务仍不得公开。旧 Quick 进程暂留到 Grok 连接器交接，仅清理本次拥有的进程。安装后台辅助组件、开机自启、修改设备权限、睡眠、网络、代理或信任配置须另有明确授权；不绕过 TLS 校验。
 
 分别记录：二进制执行、隧道建立、外部 HTTPS 响应、自动启动 / 恢复、APK 内置、长时 / 休眠 / 网络切换。ADB shell 成功不等于 App UID 可运行；进程存在、连接器列出工具、收到命令均不等于画面已渲染。语音、MR 可见性、输入 / 音频焦点和视觉新帧也分别验收。
 
