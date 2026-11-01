@@ -4,12 +4,12 @@
 
 ## 传输
 
-本地 MCP 地址是 `http://localhost:8788/mcp`。正式环境的示例是 `https://vr.example.com/mcp`。实现同时接受两种协议时期：
+本地 MCP 地址是 `http://localhost:8788/mcp`。正式环境的示例是 `https://vr.example.com/mcp`。传输实现使用官方 MCP TypeScript SDK 2.x（`@modelcontextprotocol/server` 与 `@modelcontextprotocol/node`；`@modelcontextprotocol/sdk` 没有 2.x 发布）。实现同时接受两种协议时期：
 
-- `2026-07-28`：无初始化握手、无协议级会话。每个 POST 在 `_meta` 里带 `io.modelcontextprotocol/protocolVersion` 和 `io.modelcontextprotocol/clientCapabilities`，并在 `MCP-Protocol-Version` 头里重复同一版本。`Mcp-Method` 必须与正文方法一致；`tools/call` 还要带与 `params.name` 一致的 `Mcp-Name`。`server/discover` 返回支持的版本。不支持的版本返回 `-32022`，头和正文不一致返回 `-32020`。
+- `2026-07-28`：无初始化握手、无协议级会话。每个 POST 在 `_meta` 里带 `io.modelcontextprotocol/protocolVersion` 和 `io.modelcontextprotocol/clientCapabilities`，并在 `MCP-Protocol-Version` 头里重复同一版本。`Mcp-Method` 必须与正文方法一致；`tools/call` 还要带与 `params.name` 一致的 `Mcp-Name`。`server/discover` 的 `supportedVersions` 只列出 `2026-07-28`。不支持的现代版本返回 `-32022`，其 `data.supported` 同样只列出该现代修订；头和正文不一致返回 `-32020`。
 - `2025-11-25`：`initialize` 协商版本，响应头 `MCP-Session-Id`，随后发送 `notifications/initialized`。之后的请求带会话头和 `MCP-Protocol-Version: 2025-11-25`。`DELETE /mcp` 结束会话。`GET /mcp` 返回 405，因为这条实现不开放独立的服务端事件流。
 
-两种时期的工具调用都可以用 `application/json` 返回单个 JSON-RPC 对象。请求的 `Accept` 必须同时包含 `application/json` 和 `text/event-stream`。会话标识不是凭据。
+两种时期的工具调用都可以用 `application/json` 返回单个 JSON-RPC 对象。请求的 `Accept` 必须同时包含 `application/json` 和 `text/event-stream`。会话标识不是凭据。SDK 的 DELETE 实现返回 200；本服务在传输层外仍对已存在的会话返回空的 204，以保持原来的客户端行为。
 
 浏览器带来的 `Origin` 必须在允许列表中，否则 403。没有 `Origin` 的托管端调用仍要通过 Bearer 校验。显示页自己的 `http://localhost:<显示端口>` 只在显示端口上自动允许，不因此放行 MCP。
 

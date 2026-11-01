@@ -1,8 +1,10 @@
 # Quest 原生 MR 空间助手
 
-> 当前检查点：`0.4-spatial` 原生工作区实机联调，2026-11-01。下文区分已完成、待测试与尚未实现；详细证据见 [实机记录](docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
+> 当前检查点：双轨显示重构，2026-11-01。桌面浏览器可以驱动新的网页显示；头显安装与语音闭环仍待机主实机验收。结构见 [双轨架构](docs/07-architecture-two-track.md)。历史实机证据见 [实机记录](docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
 
-已确认的主线是 **Quest 本机 MCP + 自研原生 MR App + 同一 App 入口的 Grok 官方网页**。自研 App 管理空间面板、状态、透视视觉联动与连接就绪；网页作为独立页面，复用官方账号、Bot、对话和语音，不另接模型 API 或重做语音。
+显示分成两条轨道。**网页显示**用 React Three Fiber、`@react-three/xr`、`@react-three/uikit` 和 `@react-three/drei` 呈现预设、面板、glTF 和 WebXR。**原生壳**用 Spatial SDK 把 Grok 官方网页（Custom Tabs）和这块网页显示（WebView 面板）放在一起。中继、三个工具的名称和输入 schema、`seq` / ACK / `delivered` 保持不变。不另接模型 API，不重做语音。
+
+Quick Tunnel 继续作为这条重构的公网连接。本分支不修改 DNS、WAF、账号或具名 Tunnel。具名 Tunnel 的下一步需要机主批准。
 
 **当前阶段 1 路径：**工具客户端 → 固定具名 Tunnel 的 HTTPS `/mcp` → 开发宿主上的 Node 中继 → Quest 原生显示客户端。三个工具已从调试客户端打通；Grok 网页语音触发同一路径仍待验收。
 
@@ -45,6 +47,7 @@ Quest 本机 MCP 正式服务、正式 Tunnel 生命周期 / 自启、相机新�
 4. [实现中的协议基线](docs/04-protocol-baseline.md)
 5. [已确认决策及待验证项](docs/05-decisions.md)
 6. [原生空间评审与精炼计划](docs/06-native-spatial-review.md)
+7. [双轨显示架构](docs/07-architecture-two-track.md)
 
 正式 Cloudflare 入口的当前状态、env / 令牌分工及切换步骤见[具名 Tunnel 配置](config/cloudflared/README.md)。已验证固定入口的鉴权 / 工具发现与路径隔离；Grok 连接器与新原生显示的联合验收另行记录。
 

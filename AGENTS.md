@@ -2,7 +2,9 @@
 
 ## 已确认范围
 
-先读 README、docs/06-native-spatial-review.md、docs/05-decisions.md、docs/02-milestones.md 和相关实现；检查工作区，保留不属于本次任务的修改。
+先读 README、docs/07-architecture-two-track.md、docs/06-native-spatial-review.md、docs/05-decisions.md、docs/02-milestones.md 和相关实现；检查工作区，保留不属于本次任务的修改。
+
+docs/07 是双轨显示的当前结构：网页显示（Vite + React Three Fiber）负责画面，Spatial SDK 壳负责把 Grok Custom Tab 和显示 WebView 放在一起。`DisplayEngine` 只留在协议测试里。不要把桌面 `delivered: true` 写成头显通过，也不要在未经批准时修改 Cloudflare DNS、WAF、账号或具名 Tunnel。
 
 docs/06 是对照主线中继与六段里程碑的评审，覆盖到网页语音验收。语音走同一 App 任务栈里的官方网页 Custom Tabs，用户已验收登录和基础语音。后续 `apps/quest-app/spatial` 的原生显示主体已构建，用户要求完整联调集中到主体开发后；本机 MCP 与恢复仍待实现。不要把旧网页验收或新工程编译写成头显工具回执、真实画面或首包分位数已经通过。
 
