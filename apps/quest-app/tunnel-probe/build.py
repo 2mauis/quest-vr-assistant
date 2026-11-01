@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import zipfile
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "build"
@@ -35,6 +36,14 @@ def main():
     if any(line not in allowed for line in dirty):
         raise SystemExit("use an isolated upstream source checkout; unrelated modifications found")
     OUT.mkdir(exist_ok=True)
+    web_url = os.environ.get("QVR_WEB_START_URL", "https://app.example.com/")
+    parsed = urlsplit(web_url)
+    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.port not in (None, 443):
+        raise SystemExit("QVR_WEB_START_URL must be an HTTPS URL without credentials, using port 443")
+    generated = OUT / "generated/com/example/questvr/tunnelprobe/WebBuildConfig.java"
+    generated.parent.mkdir(parents=True, exist_ok=True)
+    generated.write_text("package com.example.questvr.tunnelprobe;\nfinal class WebBuildConfig {\n"
+                         "    static final String START_URL = " + json.dumps(web_url) + ";\n}\n")
     for patch in patches:
         shutil.copyfile(patch, source / "cmd/cloudflared" / patch.name)
     native = OUT / "libcloudflared_probe.so"
@@ -51,7 +60,7 @@ def main():
     run(tools / "aapt2", "link", "-I", platform, "--manifest", ROOT / "AndroidManifest.xml", "-o", OUT / "unsigned.apk")
     bootclasspath = os.pathsep.join(str(p) for p in (platform, tools / "core-lambda-stubs.jar"))
     run(java / "javac", "-encoding", "UTF-8", "-source", "8", "-target", "8", "-Xlint:-options", "-bootclasspath", bootclasspath,
-        "-d", classes, *sorted((ROOT / "src").rglob("*.java")))
+        "-d", classes, *sorted((ROOT / "src").rglob("*.java")), generated)
     run(tools / "d8", "--min-api", "28", "--lib", platform, "--output", dex, *sorted(classes.rglob("*.class")))
     # Collect notices from the actual pinned dependency graph, including replacements.
     raw = subprocess.check_output(["go", "list", "-mod=readonly", "-tags", "quest_probe", "-deps", "-json",
@@ -77,6 +86,8 @@ def main():
     with zipfile.ZipFile(OUT / "unsigned.apk", "a", compression=zipfile.ZIP_DEFLATED) as apk:
         apk.write(dex / "classes.dex", "classes.dex")
         apk.write(native, "lib/arm64-v8a/libcloudflared_probe.so")
+        for asset in sorted((ROOT / "assets").rglob("*")):
+            if asset.is_file(): apk.write(asset, "assets/" + asset.relative_to(ROOT / "assets").as_posix())
         for license_file, destination in licenses:
             apk.write(license_file, "assets/third_party/" + destination)
         apk.write(go_root / "LICENSE", "assets/third_party/go/LICENSE")
