@@ -1,5 +1,7 @@
 # 原生空间评审与精炼计划
 
+> 后续开发更新：阶段 B / C / E / D 的原生主体已在 `apps/quest-app/spatial` 实现并构建，尚待集中实机验收。具名 Tunnel 已获用户授权改接现有中继，替代本评审原先的 Quick 默认入口；原生 MCP 迁移顺序不变。最新状态见[决策](05-decisions.md)与[工程说明](../apps/quest-app/spatial/README.md)，不以实现完成关闭下面的验收项。
+
 > 2026-11-01。本文对照 `main`、主线分支 `cursor/mcp-relay-web-display-2d84`（草稿 PR #1，检查点 `dca4f9e`）和本分支已记录的 Quest 本机方案。开始阅读时的分支 HEAD 是 `ab33f4c`。推送前已快进到 `f3fc808`，下文按这个最新 HEAD 复核。结论先写。平台说法分成已核对与未核对；未打开的页面不写成已证实。
 
 ## 结论

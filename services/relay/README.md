@@ -36,6 +36,8 @@ export DEVICE_PAIRING_TOKEN='<PLACEHOLDER>'
 
 真实校验和范围由 [config.js](src/config.js) 执行，正文上限 256 KiB。SIGTERM 关闭监听；配对、队列和幂等状态只在内存，重启后需重新配对。日志不记录秘密或面板正文。公网入口与 Quest 探针不由此启动命令创建，当前探针也不连接本服务。
 
+具名 Tunnel 的当前状态、私有凭据分工、固定入口模板与切换步骤见[正式入口说明](../../config/cloudflared/README.md)。`PUBLIC_BASE_URL` 不是 Tunnel 创建 / 启动参数；固定 MCP 入口单独使用 `MCP_PUBLIC_URL`。本机已按用户授权应用精确 `/mcp` 路由并切换 `qvr`；配置 env 本身不会自动创建或应用云端路由。
+
 ## 基线测试
 
 在仓库根目录执行：

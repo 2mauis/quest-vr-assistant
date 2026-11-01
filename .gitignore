@@ -34,6 +34,7 @@ test-results/
 playwright-report/
 blob-report/
 .gradle/
+local.properties
 .idea/
 .vscode/
 __pycache__/
