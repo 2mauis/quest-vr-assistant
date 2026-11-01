@@ -12,7 +12,7 @@
 
 产品拓扑已经确认，正式 MR 工作区尚未实现。**Quest App 内置 Tunnel 最小验证已通过**：自研诊断 APK 在 Quest 3 / Android 14 / API 34 / ARM64 的 App UID 下启动随包安装的组件，建立 4 条 Tunnel 连接；外部 HTTPS 健康响应的运行码、请求码与 App 私有回执一致。
 
-适配基于 `cloudflared` 2026.10.7，使用当前网络已有 DNS 和 Android 系统 CA，保留正常 TLS 校验。重复启动、停止、重新启动、15 秒超时及主进程异常退出均有实机证据。该轮探针结束后撤下临时健康路由并卸载测试 APK，保留专用云端配置和本地构建产物；后续网页版本已重新安装并保留。下一步是正式 MCP / 凭据管理、语音触发工具、网络恢复与网页 / MR 共存。与主线六段里程碑的差别见[评审](docs/06-native-spatial-review.md)。
+适配基于 `cloudflared` 2026.10.7，使用当前网络已有 DNS 和 Android 系统 CA，保留正常 TLS 校验。重复启动、停止、重新启动、15 秒超时及主进程异常退出均有实机证据。该轮探针结束后撤下临时健康路由并卸载测试 APK，保留专用云端配置和本地构建产物；后续网页版本已重新安装并保留。阶段 1 的下一步是网页语音经现有中继触发三个工具，并在头显上取得 `delivered: true`。运行时为 Spatial SDK + Compose。把 MCP 迁入 APK 排在这次回执之后。详见[决策](docs/05-decisions.md)和[评审](docs/06-native-spatial-review.md)。
 
 **网页登录与语音体验已通过用户实机验收：**当前版本 `0.3-browser` 从连接页打开官方网页，复用浏览器登录与麦克风授权。已有自动化证据覆盖 Bot 页面、音轨获取 / 释放、关闭后恢复连接页及重新打开；实际网页语音由用户确认通过。备用 WebView 的麦克风、本机 WebRTC 回环及退出释放另有验证，其登录存储仍独立。正式 Quest MCP 工具服务、MR / 视觉联动尚未接入。原版 Grok APK 的 Google Play 限制保留为历史问题，改包 / Root 路线已经停止。详情见[实机记录](docs/03-validation-baseline.md)。
 

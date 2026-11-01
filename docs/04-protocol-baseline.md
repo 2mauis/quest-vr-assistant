@@ -58,3 +58,5 @@ schema 都是 object，列出 required，并且 `additionalProperties=false`。�
 先核对授权与入口隔离，再实际调用工具，将请求、序号、ACK 与画面对齐。`Connected`、工具列表、健康响应或 `queued` 均不能代替显示确认。重试使用正确的幂等语义，避免复用旧请求后误判本次成功。
 
 历史 Grok 托管连接器采用静态 Bearer 的实际调用已通过，详见[验证记录](03-validation-baseline.md)。连接器配置中的秘密不得进入 URL、命令参数、截图或仓库；TLS 不能替代授权。Quest 语音与原生 App 联调按[新里程碑](02-milestones.md)单独验收。原生显示端若复用本页，按[评审中的消费契约](06-native-spatial-review.md)验收，不把桌面 `delivered: true` 记成头显通过。
+
+2026-11-01 阶段 1 沿用本页，并收窄验收：用户移动面板只发 `interaction`，不回写 `pose`；进程重启后不要求补发旧命令，`seq` 持久化以后再做。首包从工具调用发出计到该序号首次可见。这些边界见 [决策](05-decisions.md)。
