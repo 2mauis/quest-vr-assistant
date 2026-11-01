@@ -1,0 +1,88 @@
+# Debug ARM64 probe. build.py checks out nothing by itself.
+# It requires an isolated cloudflared tree at revision 872b241f94871665c1c157adefcf90c11f0ead96
+# and GOTOOLCHAIN=go1.27.3. Go 1.27.3 is installed directly.
+# QVR_WEB_START_URL is not set, so the script keeps its https://app.example.com/ default.
+# The debug keystore is created at build time and is not uploaded.
+
+name: apk-probe
+
+on:
+  push:
+    paths:
+      - "apps/quest-app/**"
+      - ".github/workflows/apk-probe.yml"
+  pull_request:
+    paths:
+      - "apps/quest-app/**"
+      - ".github/workflows/apk-probe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: debug arm64 apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup JDK 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Health and web policy checks
+        run: python3 apps/quest-app/tunnel-probe/test.py
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ""
+          log-accepted-android-sdk-licenses: "false"
+
+      - name: Install Android platform and build-tools
+        run: |
+          set -euo pipefail
+          sdkmanager --install "platforms;android-34" "build-tools;35.0.0"
+          test -f "$ANDROID_HOME/platforms/android-34/android.jar"
+          test -f "$ANDROID_HOME/build-tools/35.0.0/aapt2"
+          test -f "$ANDROID_HOME/build-tools/35.0.0/d8"
+          test -f "$ANDROID_HOME/build-tools/35.0.0/zipalign"
+          test -f "$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          test -f "$ANDROID_HOME/build-tools/35.0.0/core-lambda-stubs.jar"
+
+      - name: Setup Go 1.27.3
+        uses: actions/setup-go@v7
+        with:
+          go-version: "1.27.3"
+          cache: false
+
+      - name: Checkout pinned cloudflared
+        run: |
+          set -euo pipefail
+          dest="$RUNNER_TEMP/cloudflared"
+          git init "$dest"
+          git -C "$dest" config core.autocrlf false
+          git -C "$dest" remote add origin https://github.com/cloudflare/cloudflared.git
+          git -C "$dest" fetch --depth 1 origin 872b241f94871665c1c157adefcf90c11f0ead96
+          git -C "$dest" checkout --detach FETCH_HEAD
+          test "$(git -C "$dest" rev-parse HEAD)" = "872b241f94871665c1c157adefcf90c11f0ead96"
+          test -z "$(git -C "$dest" status --porcelain)"
+          echo "QVR_CLOUDFLARED_SOURCE_DIR=$dest" >> "$GITHUB_ENV"
+
+      - name: Build probe APK
+        run: python3 apps/quest-app/tunnel-probe/build.py
+
+      - name: Upload probe APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: quest-tunnel-probe
+          path: |
+            apps/quest-app/tunnel-probe/build/quest-tunnel-probe.apk
+            apps/quest-app/tunnel-probe/build/build-result.json
+          retention-days: 7
+          if-no-files-found: error
