@@ -36,6 +36,7 @@ blob-report/
 .gradle/
 .idea/
 .vscode/
+__pycache__/
 Library/
 Temp/
 Obj/

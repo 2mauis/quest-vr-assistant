@@ -8,9 +8,9 @@
 
 ## 当前状态与下一步
 
-产品拓扑已经确认，原生 App 尚未实现。**Quest Tunnel 最小实机回环已通过**：在 Quest 3 / Android 14 / API 34 / ARM64 的 ADB shell 中运行隔离适配构建，建立 4 条 QUIC 连接；外部 HTTPS 健康请求返回 200，运行码、请求码与 Quest 本机回执一致。
+产品拓扑已经确认，正式 MR 工作区尚未实现。**Quest App 内置 Tunnel 最小验证已通过**：自研诊断 APK 在 Quest 3 / Android 14 / API 34 / ARM64 的 App UID 下启动随包安装的组件，建立 4 条 Tunnel 连接；外部 HTTPS 健康响应的运行码、请求码与 App 私有回执一致。
 
-适配基于 `cloudflared` 2026.10.7，分别处理进程 DNS、内部 DNS 服务和 Android 系统证书目录。用户另行授权的路由器 fake-IP 排除规则已验证生效；正常 TLS 校验始终开启。已创建专用具名 Tunnel 与固定域名，验证结束保留配置和本机私有凭据，撤下临时健康路由并清理探针。未接入现有 MCP、显示或配对服务。下一步是 App UID / APK 内管理、自动启动与恢复、Grok 语音和双 App 共存验证；本轮结果不等于这些能力已完成。
+适配基于 `cloudflared` 2026.10.7，使用当前网络已有 DNS 和 Android 系统 CA，保留正常 TLS 校验。重复启动、停止、重新启动、15 秒超时及主进程异常退出均有实机证据。验证结束撤下临时健康路由、卸载测试 APK，保留专用云端配置和本地构建产物。下一步是正式 MCP / 凭据管理、网络恢复、Grok 语音和双 App 共存；这些能力尚未完成。
 
 1. [原生 MR 方案与责任边界](docs/01-native-spatial-plan.md)
 2. [里程碑与验收顺序](docs/02-milestones.md)
@@ -24,6 +24,6 @@
 
 - [本地验证服务与环境变量](services/relay/README.md)：启动、端口隔离、配置与测试。
 - [MCP 模块](services/vr-mcp-server/README.md)：三个显示工具及 ACK 契约。
-- [原生 App 目录](apps/quest-app/README.md)：后续实现入口，目前没有可安装 APK。
+- [原生 App 目录](apps/quest-app/README.md)：包含可构建的限时 Tunnel 诊断 APK；正式 MR 工作区待实现。
 
 旧 VPS / Caddy / systemd 部署示例、容器构建文件及旧路线文档已从当前分支移除；历史由 Git 保留。现有运行服务、脚本、代码和锁文件未因此改变。

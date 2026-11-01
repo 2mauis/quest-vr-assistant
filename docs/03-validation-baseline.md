@@ -1,6 +1,6 @@
 # 验证基线与实机记录
 
-当前结论（2026-11-01）：隔离适配构建已在实际 Quest 的 ADB shell 中通过外部 HTTPS 健康回环。下文保留首轮失败的历史，最新结果见末节；这不等于原始发布资产、正式 App UID、APK 内置或 Grok 语音已通过。
+当前结论（2026-11-01）：隔离适配构建先通过 ADB shell 回环，随后自研诊断 APK 通过 App UID、随包组件执行、公网健康回环及基本生命周期验证。下文保留先前失败和分阶段证据，最新结果见末节；正式 MCP / MR、Grok 语音、网络恢复和常驻能力仍未通过。
 
 ## 历史代码检查点
 
@@ -128,4 +128,35 @@ func init() {
 
 `--dns-resolver-addrs` 只配置 cloudflared 内部虚拟 DNS 服务，不能替代 API / 边缘发现使用的进程解析器适配。参考官方源码 `cmd/cloudflared/tunnel/configuration.go`、`ingress/origins/dns.go`，以及 Go `net.Resolver` 文档。Cloudflare 1010 的客户端建议见官方路径 `/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/`；Mihomo 过滤语义见官方路径 `/config/dns/`。
 
-本轮仓库变更仅为文档；实际验证在隔离构建和真实 Quest 上执行。文档核对相对链接、隐私占位、状态一致性和差异格式，未重复运行未改动的 Node 单元测试或桌面 E2E。APK 内置、App UID、自动启动 / 恢复、Quest Grok Bot 语音、MR 显示与视觉新帧仍保持未验证。
+上述 ADB shell 阶段的仓库变更仅为文档；实际验证在隔离构建和真实 Quest 上执行。文档核对相对链接、隐私占位、状态一致性和差异格式，未重复运行未改动的 Node 单元测试或桌面 E2E。当时 APK 内置和 App UID 仍未验证，后续结果如下。
+
+## Quest App 内置 Tunnel：最小诊断 APK
+
+2026-11-01，用户明确选择继续验证 Quest App 内置 Tunnel。新增[可复现诊断工程](../apps/quest-app/tunnel-probe/README.md)，没有迁移 MCP 到其他主机，也没有安装第三方后台载体。设备仍为 Quest 3 / Android 14 / API 34 / ARM64。
+
+| 验证项 | 最终构建的实际结果 |
+|---|---|
+| Android 构建 | JDK 21、SDK Platform 34、Build Tools 35.0.0；目标 API 34、最低 API 28；SDK CLI 构建，APK 签名和打包对齐检查通过 |
+| 原生构建 | 固定上游提交与 Go 1.27.3；保留 DNS 适配，新增探针父进程监视和最长 600 秒时限；版本 `2026.10.7-quest-app-probe` |
+| 安装路径 | ARM64 文件随 APK 打包，经安装器放入 `nativeLibraryDir`，由 App 的 `ProcessBuilder` 执行；没有从可写数据目录执行，也没有降低 target SDK |
+| 运行身份 | App 与原生子进程的实际 UID 一致且不是 shell；读取子进程状态确认父进程为 App；设备已安装 APK 与主机构建哈希一致 |
+| 权限与生命周期 | 仅网络、活动网络状态和前台服务权限；`specialUse` Service、`START_NOT_STICKY`，没有开机自启、唤醒锁或设备设置修改 |
+| DNS / CA | App 从当前活动网络取得 DNS，分别配置进程解析器和内部 DNS；读取现有系统 CA，保留正常 TLS；最终连接日志 error / fatal 和内部 DNS 初始化错误均为 0 |
+| 公网健康回环 | App 内建立 4 条 Tunnel 连接，Cloudflare 显示 healthy / 4 connections；外部 HTTPS 200、Cloudflare 响应标记、运行码、请求码和 App 私有回执均对应，未使用 ADB 端口转发 |
+| 路由与拒绝 | 云端临时规则只匹配健康路径；公网 `/`、`/mcp`、`/ws`、配对路径及 `POST /healthz` 返回 404，无请求关联码的健康 GET 返回 400 |
+| 重复与重新启动 | 重复启动保留同一会话和子进程；停止后可重新导入专用连接令牌并启动，新会话生成新的运行码；多个独立启动已通过公网回环 |
+| 显式停止 | 原生子进程消失，私有连接令牌删除，原健康端口连接被拒绝；停止前已用相同地址与命令核对监听响应 |
+| 限时退出 | 最终 APK 配置 15 秒测试，约 15.6 秒确认停止、子进程消失、令牌删除和端口关闭 |
+| 主进程异常退出 | 仅终止测试 App 主进程，约 0.15 秒后检查未见原子进程、健康端口关闭；此结果包含 Android 自身的进程回收作用，不能单独归因于 Go 父进程监视。Java 清理未必执行，测试程序另行移除了残留令牌 |
+| 凭据与许可 | APK 内容未检出管理令牌或连接令牌；Quest 仅接收专用连接令牌，经 stdin 写入 App 私有文件；原生日志未检出该令牌。APK 保留实际构建依赖图的 97 项许可 / 声明文件 |
+| 收尾 | 临时 origin 撤下并核对默认 404；测试 APK 卸载，其私有数据随包移除；专用云端资源保留。主机保留忽略的构建产物与私有证据，不发布实际地址或日志 |
+
+最终原生组件 SHA256：`88d0247852b074a3f53f7f92fe963b8ef694f973da7d0dd292400a8fa2b1caf2`。最终 APK SHA256：`759cc9ed2f37b6c7184edb72091b439e8301d26bd357eae9a0472f228653e699`。调试签名与打包时间可能影响复构建 APK 哈希，构建脚本另行记录输入与原生组件哈希。
+
+最终构建的两次健康往返约 1.046 秒、1.056 秒。它们不是 MCP / 语音首包指标或延迟分位数。短时退出验证也不证明系统重启、自启、应用更新、网络切换、摘戴 / 休眠、长期耗电或稳定运行。
+
+健康服务通过 20 项本地断言，覆盖真实 loopback 请求、严格路径 / 方法、随机码关联、重复 / 非法头部、头部大小边界、拒绝请求不产生回执、运行码更新，以及停止时关闭在途连接和监听端口。App Service 的运行身份和上述生命周期通过实机验证；未改动的 Node 单元测试与桌面 E2E 没有重复执行。
+
+另外仅用设备包管理查询确认已安装 Grok Bot：包 `ai.x.grok.bot`，版本 `1.18.0` / versionCode `1155`，minSdk `28`、targetSdk `36`，Launcher 为 `ai.x.grok.bot/.MainActivity`。没有打开其会话、读取聊天或触发语音；包查询不是 Grok 联动通过的证据。
+
+下一步仍需正式 MCP 授权与工具实现、连接凭据安全导入 / 轮换、网络变化恢复、Grok 语音 / 双 App 共存和 MR 渲染验收。本次调试 APK 的安装成功或 Service 存活均不证明这些能力。
