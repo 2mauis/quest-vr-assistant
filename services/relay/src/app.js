@@ -10,14 +10,19 @@ import { jsonBytes, readBody, safeEqualBearer } from "./security.js";
 import { createMcpHandler } from "../../vr-mcp-server/src/handle.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
-const DISPLAY_ROOT = path.join(ROOT, "apps", "web-display");
-const THREE_ROOT = path.join(ROOT, "node_modules", "three");
+const DISPLAY_ROOT = path.join(ROOT, "apps", "web-display", "dist");
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".wasm": "application/wasm",
 };
 
 function securityHeaders(extra = {}) {
@@ -96,7 +101,7 @@ async function serveFile(res, root, relativePath) {
   }
   const headers = securityHeaders({ "content-type": type, "content-length": info.size });
   if (extension === ".html") {
-    headers["content-security-policy"] = "default-src 'self'; script-src 'self' 'sha256-TXQtlLv9hkrPD55l4tCZbV94hPBYXzUd42IGR1ZWUjY='; style-src 'self'; img-src 'self' data:; connect-src 'self' https:; worker-src 'none'";
+    headers["content-security-policy"] = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: data:; worker-src 'self' blob:";
   }
   res.writeHead(200, headers);
   createReadStream(full).pipe(res);
@@ -104,13 +109,10 @@ async function serveFile(res, root, relativePath) {
 
 function displayPath(pathname) {
   if (pathname === "/" || pathname === "/index.html") return { root: DISPLAY_ROOT, file: "index.html" };
-  if (["/main.js", "/xr.js", "/styles.css"].includes(pathname)) {
-    return { root: DISPLAY_ROOT, file: pathname.slice(1) };
-  }
-  if (pathname.startsWith("/vendor/three/")) {
-    return { root: THREE_ROOT, file: pathname.slice("/vendor/three/".length) };
-  }
-  return null;
+  if (!pathname.startsWith("/") || pathname.includes("\\") || pathname.includes("\0")) return null;
+  const relative = pathname.slice(1);
+  if (!relative || relative.endsWith("/") || relative.split("/").includes("..")) return null;
+  return { root: DISPLAY_ROOT, file: relative };
 }
 
 export function createApp(config) {

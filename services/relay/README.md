@@ -2,7 +2,7 @@
 
 此 Node 进程是阶段 1 的中继。2026-11-01 已拍板：网页语音先调用本进程的 `/mcp`，头显取得 `delivered: true` 之后，才把 MCP 迁入 APK。[决策](../../docs/05-decisions.md)与[评审](../../docs/06-native-spatial-review.md)记录边界。它还不是 Quest 原生运行时。
 
-`src/index.js` 加载 MCP、配对、WebSocket、有界内存队列及桌面显示页。`HOST` / `PORT` 提供显示、配对与 WebSocket；`TUNNEL_HOST` / `TUNNEL_PORT` 只处理精确 `/mcp`，其他路径返回 404。两个监听均只允许 localhost。
+`src/index.js` 加载 MCP、配对、WebSocket、有界内存队列，并提供 Vite 构建后的网页显示。先执行 `npm run build:display`，或直接 `npm start`。`HOST` / `PORT` 提供显示、配对与 WebSocket；`TUNNEL_HOST` / `TUNNEL_PORT` 只处理精确 `/mcp`，其他路径返回 404。两个监听均只允许 localhost。
 
 ## 启动与配置
 

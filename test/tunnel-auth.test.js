@@ -52,11 +52,13 @@ test("tunnel listener serves only /mcp and requires the bearer token", async (t)
   });
   const discovered = await allowed.json();
   assert.equal(allowed.status, 200);
-  assert.deepEqual(discovered.result.supportedVersions, ["2026-07-28", "2025-11-25"]);
+  assert.deepEqual(discovered.result.supportedVersions, ["2026-07-28"]);
 
   const localPage = await fetch(`http://localhost:${port}/`);
   assert.equal(localPage.status, 200);
-  assert.match(await localPage.text(), /<canvas/);
+  const page = await localPage.text();
+  assert.match(page, /id="root"/);
+  assert.match(page, /type="module"/);
   const localMcp = await fetch(`http://localhost:${port}/mcp`);
   assert.equal(localMcp.status, 404);
 });

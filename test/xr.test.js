@@ -1,73 +1,79 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EventDispatcher } from "three";
-import { setupXR } from "../apps/web-display/xr.js";
+import { bindImmersiveControls } from "../apps/web-display/src/xr-entry.js";
 
 function fixture({ modes = ["immersive-vr"], fail = false } = {}) {
   const button = new EventTarget();
+  button.disabled = false;
+  button.textContent = "";
   const mode = new EventTarget();
   mode.value = "immersive-vr";
-  mode.options = ["immersive-vr", "immersive-ar"].map((value) => ({ value }));
-  const status = {};
-  const manager = new EventDispatcher();
-  const controls = { enabled: true, saved: 0, restored: 0,
-    saveState() { this.saved += 1; }, reset() { this.restored += 1; } };
-  const scene = { background: "opaque" };
+  mode.disabled = false;
+  mode.options = ["immersive-vr", "immersive-ar"].map((value) => ({ value, disabled: false }));
+  const status = { textContent: "" };
   const requests = [];
-  manager.setReferenceSpaceType = (value) => { manager.referenceSpace = value; };
-  manager.setSession = async () => { if (fail) throw new Error("no renderer"); };
-  const session = { ended: 0, async end() {
-    this.ended += 1;
-    manager.dispatchEvent({ type: "sessionend" });
-  } };
+  let session = null;
+  const store = {
+    getState: () => ({ session }),
+    onSessionEnd(callback) {
+      store.endListener = callback;
+      return () => { store.endListener = null; };
+    },
+    async enterVR() { return enter("immersive-vr"); },
+    async enterAR() { return enter("immersive-ar"); },
+  };
+  async function enter(value) {
+    requests.push(value);
+    if (fail) throw new Error("no renderer");
+    session = { ended: 0, async end() { this.ended += 1; session = null; store.endListener?.(); } };
+    return session;
+  }
   const xr = {
     isSessionSupported: async (value) => modes.includes(value),
-    requestSession: async (value, options) => { requests.push({ value, options }); return session; },
+    requestSession() { throw new Error("the page must not request a session itself"); },
   };
-  return { xr, renderer: { xr: manager }, controls, scene, button, mode, status, requests, session };
+  return { xr, store, button, mode, status, requests, get session() { return session; } };
 }
 
 async function click(button) {
   button.dispatchEvent(new Event("click"));
   await new Promise((resolve) => setImmediate(resolve));
+  await new Promise((resolve) => setImmediate(resolve));
 }
 
-test("XR requests one supported mode with floor tracking and restores desktop controls on exit", async () => {
+test("immersive controls enter one selected mode through the XR store", async () => {
   const f = fixture({ modes: ["immersive-vr", "immersive-ar"] });
-  await setupXR(f);
+  bindImmersiveControls({ store: f.store, xr: f.xr, button: f.button, mode: f.mode, status: f.status });
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(f.mode.value, "immersive-vr");
   f.mode.value = "immersive-ar";
-  f.button.dispatchEvent(new Event("click"));
-  await click(f.button); // A second click while setup is pending must not start another session.
-  assert.equal(f.requests.length, 1);
-  assert.equal(f.requests[0].value, "immersive-ar");
-  assert.deepEqual(f.requests[0].options.requiredFeatures, ["local-floor"]);
-  assert.equal(f.renderer.xr.referenceSpace, "local-floor");
-  assert.equal(f.scene.background, null);
-  assert.equal(f.controls.enabled, false);
-  assert.equal(f.mode.disabled, true);
+  const first = click(f.button);
   await click(f.button);
-  assert.equal(f.session.ended, 1);
-  assert.equal(f.scene.background, "opaque");
-  assert.equal(f.controls.enabled, true);
-  assert.equal(f.controls.restored, 1);
+  await first;
+  assert.deepEqual(f.requests, ["immersive-ar"]);
+  assert.equal(f.mode.disabled, true);
+  assert.equal(f.button.disabled, false);
+  await click(f.button);
+  assert.equal(f.session, null);
+  assert.equal(f.status.textContent, "已返回桌面视图");
   assert.equal(f.button.disabled, false);
 });
 
-test("XR setup failure closes the acquired session and leaves a retryable desktop", async () => {
+test("a failed XR store entry stays on the desktop and can be retried", async () => {
   const f = fixture({ fail: true });
-  await setupXR(f);
+  bindImmersiveControls({ store: f.store, xr: f.xr, button: f.button, mode: f.mode, status: f.status });
+  await new Promise((resolve) => setImmediate(resolve));
   await click(f.button);
-  assert.equal(f.session.ended, 1);
-  assert.equal(f.controls.enabled, true);
-  assert.equal(f.scene.background, "opaque");
+  assert.equal(f.requests.length, 1);
+  assert.equal(f.session, null);
   assert.equal(f.button.disabled, false);
   assert.match(f.status.textContent, /未能进入/);
 });
 
 test("a browser without immersive support cannot request a session", async () => {
   const f = fixture({ modes: [] });
-  await setupXR(f);
+  bindImmersiveControls({ store: f.store, xr: f.xr, button: f.button, mode: f.mode, status: f.status });
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(f.button.disabled, true);
   await click(f.button);
   assert.equal(f.requests.length, 0);

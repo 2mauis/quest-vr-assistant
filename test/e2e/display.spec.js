@@ -39,7 +39,7 @@ async function tool(name, args, id) {
 
 async function sample(page) {
   return page.evaluate(() => {
-    const canvas = document.querySelector("canvas");
+    const canvas = document.querySelector("#view");
     const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
     const pixels = new Uint8Array(canvas.width * canvas.height * 4);
     gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);

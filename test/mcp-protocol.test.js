@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mcpCall, mcpHeaders, modernBody, startTestApp } from "./helpers.js";
+import { toolDefinitions } from "../services/vr-mcp-server/src/tools.js";
 
 async function post(port, headers, body) {
   const response = await fetch(`http://localhost:${port}/mcp`, {
@@ -25,6 +26,7 @@ test("modern discover, tools/list, and version errors follow 2026-07-28", async 
   assert.equal(listed.response.status, 200);
   assert.equal(listed.json.result.resultType, "complete");
   assert.deepEqual(listed.json.result.tools.map((tool) => tool.name), ["show_scene", "render_panel", "clear"]);
+  assert.deepEqual(listed.json.result.tools.map((tool) => tool.inputSchema), toolDefinitions.map((tool) => tool.inputSchema));
 
   const mismatch = await post(tunnelPort, {
     ...mcpHeaders(env.MCP_BEARER_SECRET, "tools/list"),
@@ -59,7 +61,8 @@ test("modern discover, tools/list, and version errors follow 2026-07-28", async 
   });
   assert.equal(unsupported.response.status, 400);
   assert.equal(unsupported.json.error.code, -32022);
-  assert.deepEqual(unsupported.json.error.data.supported, ["2026-07-28", "2025-11-25"]);
+  // SDK v2 lists modern revisions here. 2025-11-25 is negotiated with initialize.
+  assert.deepEqual(unsupported.json.error.data.supported, ["2026-07-28"]);
 
   const missingName = await mcpCall(tunnelPort, env.MCP_BEARER_SECRET, "show_scene", {
     request_id: "scene-a",
