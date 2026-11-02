@@ -55,7 +55,7 @@ sh apps/quest-app/spatial/build.sh
 - `build-result.json`：源码提交、版本、APK / 签名证书 / 原生组件哈希、网页入口是否配置；不记录真实 URL 或秘密。
 - `SHA256SUMS`：APK 校验和。
 
-另外保留探针 APK 和原生测试报告，产物保存 7 天。[中继 CI](../../../.github/workflows/ci.yml)执行单元与桌面浏览器检查，输出浏览器报告；这些结果仍不替代 Quest 实机验收。
+诊断组件已打包进上面的 APK，不再单独上传探针 APK；另外保留原生测试报告，产物保存 7 天。[中继 CI](../../../.github/workflows/ci.yml)执行单元与桌面浏览器检查，输出浏览器报告；这些结果仍不替代 Quest 实机验收。
 
 仓库的 Actions Secret `QVR_WEB_START_URL` 仅配置已验收的官网入口（允许 `product` 路由参数），不含账号或令牌。它只供原生构建和产物检查使用；没有这个配置的 fork / PR 使用 `https://app.example.com/` 占位入口，产物中明确标记为 `placeholder`。
 

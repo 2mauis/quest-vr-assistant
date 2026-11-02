@@ -111,16 +111,6 @@ jobs:
           compression-level: 0
           if-no-files-found: error
 
-      - name: Upload probe APK
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: quest-tunnel-probe
-          path: |
-            apps/quest-app/tunnel-probe/build/quest-tunnel-probe.apk
-            apps/quest-app/tunnel-probe/build/build-result.json
-          retention-days: 7
-          if-no-files-found: error
-
       - name: Upload display test reports
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
