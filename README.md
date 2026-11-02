@@ -1,8 +1,9 @@
 # Quest 原生 MR 空间助手
 
-[![codeql](../../actions/workflows/codeql.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../actions/workflows/codeql.yml)
-[![ci](../../actions/workflows/ci.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../actions/workflows/ci.yml)
-[![quest-apk](../../actions/workflows/apk-probe.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../actions/workflows/apk-probe.yml)
+<!-- Relative badge links resolve against blob/<branch>/; this branch name contains one "/", so they need ../../../ here and ../../ on main. -->
+[![codeql](../../../actions/workflows/codeql.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/codeql.yml)
+[![ci](../../../actions/workflows/ci.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/ci.yml)
+[![quest-apk](../../../actions/workflows/apk-probe.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/apk-probe.yml)
 
 > 当前检查点：双轨显示重构，2026-11-01。桌面浏览器可以驱动新的网页显示；头显安装与语音闭环仍待机主实机验收。结构见 [双轨架构](docs/07-architecture-two-track.md)。历史实机证据见 [实机记录](docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
 
