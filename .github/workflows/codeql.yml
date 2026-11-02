@@ -1,0 +1,105 @@
+# CodeQL advanced setup: security-extended queries for the TypeScript relay and
+# display page, the workflow files and the native shell. Uploads to code
+# scanning, which rejects CodeQL results while default setup is enabled.
+# The same analysis runs locally with scripts/codeql-local.sh.
+
+name: codeql
+
+on:
+  push:
+    branches:
+      - main
+      - refactor/display-two-track-opus-2026-11-02
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+          - language: java-kotlin
+            build-mode: manual
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup JDK 21
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Setup Android SDK
+        if: matrix.language == 'java-kotlin'
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4
+        with:
+          packages: ""
+          log-accepted-android-sdk-licenses: "false"
+
+      - name: Install Android platform and build-tools
+        if: matrix.language == 'java-kotlin'
+        run: sdkmanager --install "platforms;android-34" "build-tools;35.0.0"
+
+      - name: Setup Gradle 8.14.3
+        if: matrix.language == 'java-kotlin'
+        uses: gradle/actions/setup-gradle@4c125117fe7c5aed11272ec4213f602f012f89f2 # v5
+        with:
+          gradle-version: "8.14.3"
+          cache-read-only: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      # Compiles the shell and the probe sources it includes; the probe APK, its
+      # Go library and signing are not needed for analysis. Kotlin must compile
+      # in-process and non-incrementally for the extractor to see every file.
+      - name: Build native shell
+        if: matrix.language == 'java-kotlin'
+        run: >-
+          gradle --no-daemon --no-build-cache --rerun-tasks --console=plain
+          -p apps/quest-app/spatial
+          -Pkotlin.compiler.execution.strategy=in-process -Pkotlin.incremental=false
+          :core:compileTestKotlin :app:compileDebugJavaWithJavac
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
+        with:
+          category: /language:${{ matrix.language }}
+          output: sarif-results
+
+      - name: Upload SARIF
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results/
+          retention-days: 14
+          if-no-files-found: ignore
