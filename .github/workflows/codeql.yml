@@ -95,6 +95,33 @@ jobs:
           category: /language:${{ matrix.language }}
           output: sarif-results
 
+      # Report only: a summary problem must never fail the analysis job.
+      - name: Setup Node.js 22 for the summary
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Write alert summary
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          LANGUAGE: ${{ matrix.language }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          shopt -s nullglob
+          if [ -n "$PR_NUMBER" ]; then query="is:open pr:$PR_NUMBER"; else query="is:open branch:$GITHUB_REF_NAME"; fi
+          alerts="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/security/code-scanning?query=$(jq -rn --arg q "$query" '$q | @uri')"
+          files=(sarif-results/*.sarif)
+          if [ "${#files[@]}" -eq 0 ]; then
+            printf '### CodeQL: %s\n\nNo SARIF was produced.\n' "$LANGUAGE" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/codeql-sarif-summary.ts --markdown "${files[@]}" >> "$GITHUB_STEP_SUMMARY" ||
+            printf '### CodeQL: %s\n\nThe summary could not be generated; see the SARIF artifact.\n' "$LANGUAGE" >> "$GITHUB_STEP_SUMMARY"
+          printf '\n[Open alerts for `%s` in code scanning](%s)\n' "$query" "$alerts" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload SARIF
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
