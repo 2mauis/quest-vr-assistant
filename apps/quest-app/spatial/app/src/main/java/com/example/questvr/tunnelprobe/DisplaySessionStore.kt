@@ -4,63 +4,130 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import com.example.questvr.display.DisplayEndpoint
 import com.example.questvr.display.DisplaySession
-import com.example.questvr.display.ConnectionStatus
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
+import org.json.JSONException
+import org.json.JSONObject
+import java.security.GeneralSecurityException
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
-import kotlinx.coroutines.flow.MutableStateFlow
-import org.json.JSONObject
 
-/** Process state is separate from the short-lived encrypted pairing session. */
-object WorkspaceRuntime {
-    val status = MutableStateFlow(ConnectionStatus("disconnected"))
-    val connectionAllowed = MutableStateFlow(true)
-    var explicitReconnectRequired = false
-    var debugCommand: ((String) -> Unit)? = null
-}
+/**
+ * The paired display session, encrypted with a non-exportable Keystore key. All calls do
+ * disk and Keystore work on the IO dispatcher, so they are safe from the main thread.
+ */
+class DisplaySessionStore(
+    context: Context,
+) {
+    private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-class DisplaySessionStore(context: Context) {
-    private val prefs = context.getSharedPreferences("native_display", Context.MODE_PRIVATE)
-    var endpoint: String
-        get() = prefs.getString("endpoint", "http://localhost:8787")!!
-        set(value) { prefs.edit().putString("endpoint", value).apply() }
+    suspend fun endpointText(): String = io { prefs.getString(KEY_ENDPOINT, null) ?: DEFAULT_ENDPOINT }
+
+    suspend fun load(): DisplaySession? =
+        io {
+            val encoded = prefs.getString(KEY_SESSION, null) ?: return@io null
+            val session =
+                try {
+                    decode(decrypt(Base64.decode(encoded, Base64.NO_WRAP)))
+                } catch (_: GeneralSecurityException) {
+                    null
+                } catch (_: JSONException) {
+                    null
+                } catch (_: IllegalArgumentException) {
+                    null
+                }
+            session?.takeIf { it.canRestore(System.currentTimeMillis()) } ?: run {
+                removeSession()
+                null
+            }
+        }
+
+    suspend fun save(session: DisplaySession) =
+        io {
+            val encrypted = encrypt(encode(session))
+            prefs
+                .edit()
+                .putString(KEY_SESSION, Base64.encodeToString(encrypted, Base64.NO_WRAP))
+                .putString(KEY_ENDPOINT, session.endpoint.origin)
+                .commit()
+        }
+
+    suspend fun clear() = io { removeSession() }
+
+    private fun removeSession() {
+        prefs.edit().remove(KEY_SESSION).commit()
+    }
+
+    private suspend fun <T> io(block: () -> T): T = withContext(Dispatchers.IO) { lock.withLock { block() } }
+
+    private fun encode(session: DisplaySession): ByteArray =
+        JSONObject()
+            .put("endpoint", session.endpoint.origin)
+            .put("token", session.token)
+            .put("expires", session.expiresAt)
+            .put("refresh", session.refreshToken ?: JSONObject.NULL)
+            .put("refreshExpires", session.refreshExpiresAt)
+            .toString()
+            .toByteArray(Charsets.UTF_8)
+
+    private fun decode(data: ByteArray): DisplaySession {
+        val json = JSONObject(String(data, Charsets.UTF_8))
+        val token = json.getString("token")
+        require(DisplaySession.isSessionToken(token)) { "stored_token" }
+        return DisplaySession(
+            endpoint = DisplayEndpoint.parse(json.getString("endpoint"), BuildConfig.DEBUG),
+            token = token,
+            expiresAt = json.getLong("expires"),
+            refreshToken = if (json.isNull("refresh")) null else json.getString("refresh"),
+            refreshExpiresAt = json.optLong("refreshExpires"),
+        )
+    }
+
+    private fun encrypt(plain: ByteArray): ByteArray {
+        val cipher = Cipher.getInstance(TRANSFORMATION).apply { init(Cipher.ENCRYPT_MODE, key()) }
+        return cipher.iv + cipher.doFinal(plain)
+    }
+
+    private fun decrypt(data: ByteArray): ByteArray {
+        require(data.size > IV_BYTES + TAG_BYTES) { "stored_session" }
+        val cipher =
+            Cipher.getInstance(TRANSFORMATION).apply {
+                init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(TAG_BYTES * 8, data, 0, IV_BYTES))
+            }
+        return cipher.doFinal(data, IV_BYTES, data.size - IV_BYTES)
+    }
 
     private fun key(): SecretKey {
-        val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        val alias = "quest_assistant_display_session"
-        (store.getKey(alias, null) as? SecretKey)?.let { return it }
-        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
-            init(KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
-        }.generateKey()
+        val keyStore = KeyStore.getInstance(KEYSTORE).apply { load(null) }
+        (keyStore.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        val spec =
+            KeyGenParameterSpec
+                .Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .build()
+        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE).apply { init(spec) }.generateKey()
     }
 
-    fun save(session: DisplaySession) {
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
-        val data = JSONObject().put("endpoint", session.endpoint).put("token", session.token)
-            .put("expires", session.expiresAt).put("refresh", session.refreshToken)
-            .put("refreshExpires", session.refreshExpiresAt).toString().toByteArray(Charsets.UTF_8)
-        val encrypted = cipher.doFinal(data)
-        prefs.edit().putString("session", Base64.encodeToString(cipher.iv + encrypted, Base64.NO_WRAP))
-            .putString("endpoint", session.endpoint).apply()
-    }
+    private companion object {
+        const val PREFS = "native_display"
+        const val KEY_ENDPOINT = "endpoint"
+        const val KEY_SESSION = "session"
+        const val DEFAULT_ENDPOINT = "http://localhost:8787"
+        const val KEYSTORE = "AndroidKeyStore"
+        const val KEY_ALIAS = "quest_assistant_display_session"
+        const val TRANSFORMATION = "AES/GCM/NoPadding"
+        const val IV_BYTES = 12
+        const val TAG_BYTES = 16
 
-    fun load(): DisplaySession? {
-        val encoded = prefs.getString("session", null) ?: return null
-        return try {
-            val data = Base64.decode(encoded, Base64.NO_WRAP)
-            require(data.size > 28)
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply {
-                init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, data.copyOfRange(0, 12)))
-            }
-            val json = JSONObject(String(cipher.doFinal(data.copyOfRange(12, data.size)), Charsets.UTF_8))
-            DisplaySession(json.getString("endpoint"), json.getString("token"), json.getLong("expires"),
-                json.optString("refresh").takeIf { it.isNotEmpty() && it != "null" }, json.optLong("refreshExpires"))
-                .takeIf { it.canRestore() }.also { if (it == null) clear() }
-        } catch (_: Exception) { clear(); null }
+        /** One lock for every instance: Activities create their own store over the same file. */
+        val lock = Mutex()
     }
-    fun clear() { prefs.edit().remove("session").apply() }
 }

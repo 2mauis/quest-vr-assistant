@@ -45,3 +45,6 @@ UserSettings/
 *.apk
 *.aab
 .DS_Store
+
+# Kotlin compiler state
+.kotlin/

@@ -6,10 +6,15 @@ import android.content.Intent
 
 /** Shell-only, debug-only inspection without opening an Activity or stealing XR focus. */
 class DebugWorkspaceReceiver : BroadcastReceiver() {
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         val operation = intent.getStringExtra("operation") ?: return
-        if (operation in setOf("dump", "recenter", "open_grok", "expire_session")) {
-            WorkspaceRuntime.debugCommand?.invoke(operation)
-        }
+        if (operation in OPERATIONS) WorkspaceDebugHook.command?.invoke(operation)
+    }
+
+    private companion object {
+        val OPERATIONS = setOf("dump", "recenter", "open_grok", "expire_session")
     }
 }
