@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { chmodSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { namedTunnelPlan } from "../scripts/start-named-tunnel.mjs";
 
-function fixture(t) {
+function fixture(t: TestContext) {
   const folder = mkdtempSync(join(tmpdir(), "qvr-named-tunnel-"));
   t.after(() => rmSync(folder, { recursive: true, force: true }));
   const tokenFile = join(folder, "connector.token");

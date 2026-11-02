@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mcpHeaders, modernBody, startTestApp } from "./helpers.js";
+import { mcpHeaders, modernBody, startTestApp } from "./helpers.ts";
 
 test("tunnel listener serves only /mcp and requires the bearer token", async (t) => {
   const started = await startTestApp({ ALLOWED_ORIGINS: "https://vr.example.com" });
@@ -50,7 +50,7 @@ test("tunnel listener serves only /mcp and requires the bearer token", async (t)
     },
     body: JSON.stringify(modernBody(1, "server/discover", {})),
   });
-  const discovered = await allowed.json();
+  const discovered = (await allowed.json()) as { result: { supportedVersions: string[] } };
   assert.equal(allowed.status, 200);
   assert.deepEqual(discovered.result.supportedVersions, ["2026-07-28"]);
 
