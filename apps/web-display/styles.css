@@ -5,9 +5,12 @@
   --panel: rgba(8, 16, 32, 0.88);
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html, body {
+html,
+body {
   margin: 0;
   height: 100%;
   background: #070b14;
@@ -15,7 +18,8 @@ html, body {
   font: 16px/1.4 sans-serif;
 }
 
-#root, #view {
+#root,
+#view {
   display: block;
   width: 100vw;
   height: 100vh;
@@ -35,9 +39,16 @@ html, body {
   border: 1px solid var(--line);
 }
 
-label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
 
-input, button, select {
+input,
+button,
+select {
   font: inherit;
   color: var(--ink);
   background: #101826;
@@ -46,8 +57,17 @@ input, button, select {
   min-height: 44px;
 }
 
-button { cursor: pointer; }
-button:disabled { opacity: 0.45; cursor: default; }
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 
-#status { min-width: 8em; }
-#xr-status { font-size: 13px; }
+#status {
+  min-width: 8em;
+}
+#xr-status {
+  font-size: 13px;
+}

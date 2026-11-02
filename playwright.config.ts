@@ -3,7 +3,7 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "test/e2e",
   timeout: 30_000,
-  globalSetup: "./test/e2e/global-setup.js",
+  globalSetup: "./test/e2e/global-setup.ts",
   use: {
     viewport: { width: 1280, height: 720 },
     headless: true,
