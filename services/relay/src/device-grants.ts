@@ -34,9 +34,7 @@ export function createDeviceGrants(config: Pick<RelayConfig, "devicePairingToken
   return {
     issue(at: number, subject: string = randomBytes(16).toString("hex")): DeviceGrant {
       const expiresAt = at + config.deviceGrantTtlMs;
-      const payload = Buffer.from(JSON.stringify({ v: 1, scope: "display", subject, expiresAt })).toString(
-        "base64url",
-      );
+      const payload = Buffer.from(JSON.stringify({ v: 1, scope: "display", subject, expiresAt })).toString("base64url");
       return { token: `${payload}.${sign(payload)}`, expiresAt };
     },
     verify(token: unknown, at: number): GrantPayload | null {

@@ -1,0 +1,11 @@
+node_modules/
+**/dist/
+**/build/
+test-results/
+playwright-report/
+package-lock.json
+test/fixtures/
+apps/quest-app/
+config/
+docs/
+*.md

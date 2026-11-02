@@ -29,9 +29,7 @@ export interface SceneSnapshot {
 }
 
 export type CommandMessage =
-  | Envelope<"show_scene", ShowSceneBody>
-  | Envelope<"render_panel", RenderPanelBody>
-  | Envelope<"clear", ClearBody>;
+  Envelope<"show_scene", ShowSceneBody> | Envelope<"render_panel", RenderPanelBody> | Envelope<"clear", ClearBody>;
 
 export type SnapshotMessage = Envelope<"snapshot", SceneSnapshot>;
 

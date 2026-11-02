@@ -68,7 +68,9 @@ export function createDisplayServer(config: DisplayConfig, hub: Hub, root: strin
       writeJson(res, 400, { error: "invalid_request" });
       return;
     }
-    const outcome = refreshing ? hub.refresh(body.refresh_token) : hub.pair(body.token, undefined, body.remember === true);
+    const outcome = refreshing
+      ? hub.refresh(body.refresh_token)
+      : hub.pair(body.token, undefined, body.remember === true);
     if (outcome.ok) writeJson(res, 200, outcome.body);
     else if (outcome.status === 429) writeRateLimited(res);
     else writeJson(res, 401, { error: "unauthorized" });

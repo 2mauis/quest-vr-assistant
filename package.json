@@ -11,7 +11,7 @@
     "start": "npm run build:display && node services/relay/src/index.ts",
     "demo": "node scripts/demo-tools.ts",
     "check:delivered": "node scripts/mcp-delivered-check.ts",
-    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web-display/tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web-display/tsconfig.json && tsc -p test/e2e/tsconfig.json",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

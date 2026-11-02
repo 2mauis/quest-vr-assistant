@@ -76,12 +76,13 @@ export function createMcpHandler(options: McpHandlerOptions, caller: ToolCaller)
 
   async function openLegacySession(req: IncomingMessage, res: ServerResponse, message: JsonRpcMessage) {
     const server = createToolServer(caller);
-    let opened = false;
+    // An object, because TypeScript does not see the callback assignment below.
+    const state = { opened: false };
     const transport: NodeStreamableHTTPServerTransport = new NodeStreamableHTTPServerTransport({
       sessionIdGenerator: () => randomUUID(),
       enableJsonResponse: true,
       onsessioninitialized: (sessionId) => {
-        opened = true;
+        state.opened = true;
         sessions.add(sessionId, transport);
       },
       onsessionclosed: (sessionId) => sessions.forget(sessionId),
@@ -91,7 +92,7 @@ export function createMcpHandler(options: McpHandlerOptions, caller: ToolCaller)
       await transport.handleRequest(req, res, message);
     } finally {
       // A rejected initialize never gets a session id; nothing else can reach it.
-      if (!opened) await server.close().catch(() => undefined);
+      if (!state.opened) await server.close().catch(() => undefined);
     }
   }
 

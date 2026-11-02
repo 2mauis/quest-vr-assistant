@@ -5,8 +5,8 @@ import { createHub } from "../services/relay/src/hub.js";
 import { type Json, startTestApp, testEnv } from "./helpers.ts";
 
 function body(outcome: ReturnType<ReturnType<typeof createHub>["pair"]>): Json {
-  assert.equal(outcome.ok, true);
-  return outcome.ok ? outcome.body : {};
+  assert.ok(outcome.ok);
+  return outcome.body;
 }
 
 test("device authorization restores expired sessions across a relay restart", () => {
@@ -31,7 +31,7 @@ test("expired, tampered and revoked device grants cannot create a session", () =
   const hub = createHub(config, () => 1_000);
   const credentials = body(hub.pair(env.DEVICE_PAIRING_TOKEN, 1_000, true));
   assert.equal(hub.refresh(credentials.session_token).status, 401);
-  assert.equal(hub.refresh(credentials.refresh_token + "x").status, 401);
+  assert.equal(hub.refresh(`${String(credentials.refresh_token)}x`).status, 401);
   assert.equal(hub.refresh(credentials.refresh_token, 1_000 + config.deviceGrantTtlMs).status, 401);
   const rotated = createHub(loadConfig(testEnv()), () => 1_000);
   assert.equal(rotated.refresh(credentials.refresh_token).status, 401);

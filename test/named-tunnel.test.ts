@@ -15,24 +15,49 @@ function fixture(t: TestContext) {
 
 test("named tunnel passes a token file and excludes unrelated secrets and conflicting relay settings", (t) => {
   const { env, tokenFile } = fixture(t);
-  const plan = namedTunnelPlan({ ...env, TUNNEL_HOST: "localhost", TUNNEL_PORT: "8788",
-    TUNNEL_TOKEN: "test-only-raw-token", MCP_BEARER_SECRET: "test-only-mcp-secret",
-    DEVICE_PAIRING_TOKEN: "test-only-pairing-secret", CLOUDFLARE_API_TOKEN: "test-only-management-secret",
-    HTTPS_PROXY: "http://localhost:8080", PATH: process.env.PATH });
+  const plan = namedTunnelPlan({
+    ...env,
+    TUNNEL_HOST: "localhost",
+    TUNNEL_PORT: "8788",
+    TUNNEL_TOKEN: "test-only-raw-token",
+    MCP_BEARER_SECRET: "test-only-mcp-secret",
+    DEVICE_PAIRING_TOKEN: "test-only-pairing-secret",
+    CLOUDFLARE_API_TOKEN: "test-only-management-secret",
+    HTTPS_PROXY: "http://localhost:8080",
+    PATH: process.env.PATH,
+  });
   assert.deepEqual(plan.args, ["tunnel", "--protocol", "http2", "--no-autoupdate", "run", "--token-file", tokenFile]);
-  for (const key of ["TUNNEL_HOST", "TUNNEL_PORT", "TUNNEL_TOKEN", "MCP_BEARER_SECRET",
-    "DEVICE_PAIRING_TOKEN", "CLOUDFLARE_API_TOKEN", "MCP_PUBLIC_URL"]) assert.equal(plan.env[key], undefined);
+  for (const key of [
+    "TUNNEL_HOST",
+    "TUNNEL_PORT",
+    "TUNNEL_TOKEN",
+    "MCP_BEARER_SECRET",
+    "DEVICE_PAIRING_TOKEN",
+    "CLOUDFLARE_API_TOKEN",
+    "MCP_PUBLIC_URL",
+  ])
+    assert.equal(plan.env[key], undefined);
   assert.equal(plan.env.HTTPS_PROXY, "http://localhost:8080");
   assert.equal(plan.env.PATH, process.env.PATH);
-  assert.ok(!plan.args.some(arg => arg.includes("test-only-")));
+  assert.ok(!plan.args.some((arg) => arg.includes("test-only-")));
 });
 
 test("named tunnel rejects temporary or ambiguous public endpoints before starting", (t) => {
   const { env } = fixture(t);
-  for (const value of [undefined, "http://mcp.example.com/mcp", "https://temporary.trycloudflare.com/mcp",
-    "https://mcp.example.com/", "https://mcp.example.com/mcp/", "https://mcp.example.com/mcp?token=sample",
-    "https://mcp.example.com/mcp#fragment", "https://user@mcp.example.com/mcp", "https://mcp.example.com:444/mcp",
-    "https://localhost/mcp", "https://mcp.example.com./mcp", "https://mcp.example.com/ws"]) {
+  for (const value of [
+    undefined,
+    "http://mcp.example.com/mcp",
+    "https://temporary.trycloudflare.com/mcp",
+    "https://mcp.example.com/",
+    "https://mcp.example.com/mcp/",
+    "https://mcp.example.com/mcp?token=sample",
+    "https://mcp.example.com/mcp#fragment",
+    "https://user@mcp.example.com/mcp",
+    "https://mcp.example.com:444/mcp",
+    "https://localhost/mcp",
+    "https://mcp.example.com./mcp",
+    "https://mcp.example.com/ws",
+  ]) {
     assert.throws(() => namedTunnelPlan({ ...env, MCP_PUBLIC_URL: value }), /MCP_PUBLIC_URL/);
   }
 });
@@ -45,7 +70,8 @@ test("named tunnel rejects missing, shared, empty, non-file and symlink token pa
   chmodSync(tokenFile, 0o644);
   assert.throws(() => namedTunnelPlan(env), /令牌文件/);
   chmodSync(tokenFile, 0o600);
-  const linked = join(folder, "linked.token"); symlinkSync(tokenFile, linked);
+  const linked = join(folder, "linked.token");
+  symlinkSync(tokenFile, linked);
   assert.throws(() => namedTunnelPlan({ ...env, TUNNEL_TOKEN_FILE: linked }), /令牌文件/);
   writeFileSync(tokenFile, "");
   assert.throws(() => namedTunnelPlan(env), /令牌文件/);

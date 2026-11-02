@@ -8,7 +8,15 @@ test("tunnel listener serves only /mcp and requires the bearer token", async (t)
   const { tunnelPort, port, env } = started;
   const base = `http://localhost:${tunnelPort}`;
 
-  const paths = ["/", "/ws", "/healthz", "/api/device/pair", "/mcp/", "/mcp/extra", "/vendor/three/build/three.module.js"];
+  const paths = [
+    "/",
+    "/ws",
+    "/healthz",
+    "/api/device/pair",
+    "/mcp/",
+    "/mcp/extra",
+    "/vendor/three/build/three.module.js",
+  ];
   for (const pathname of paths) {
     const response = await fetch(`${base}${pathname}`, {
       headers: { authorization: `Bearer ${env.MCP_BEARER_SECRET}` },

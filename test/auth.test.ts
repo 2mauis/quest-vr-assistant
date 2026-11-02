@@ -9,7 +9,16 @@ const SECRET = "s".repeat(40);
 test("isAuthorizedBearer accepts only the exact Bearer secret", () => {
   assert.equal(isAuthorizedBearer(`Bearer ${SECRET}`, SECRET), true);
   assert.equal(isAuthorizedBearer(`bearer ${SECRET}`, SECRET), true);
-  for (const header of [undefined, "", "Bearer", "Bearer ", `Basic ${SECRET}`, `Bearer ${SECRET}x`, `Bearer ${SECRET} x`, [`Bearer ${SECRET}`]]) {
+  for (const header of [
+    undefined,
+    "",
+    "Bearer",
+    "Bearer ",
+    `Basic ${SECRET}`,
+    `Bearer ${SECRET}x`,
+    `Bearer ${SECRET} x`,
+    [`Bearer ${SECRET}`],
+  ]) {
     assert.equal(isAuthorizedBearer(header, SECRET), false, String(header));
   }
 });
@@ -65,6 +74,9 @@ test("repeated Bearer failures are rate limited", async (t) => {
     statuses.push(response.status);
     await response.body?.cancel();
   }
-  assert.equal(statuses.slice(0, 3).every((status) => status === 401), true);
+  assert.equal(
+    statuses.slice(0, 3).every((status) => status === 401),
+    true,
+  );
   assert.equal(statuses.at(-1), 429);
 });

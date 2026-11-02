@@ -35,7 +35,12 @@ test("show_scene accepts exactly one source and normalises pose and anchor", () 
   assert.equal(model.ok, true);
   assert.equal(code("show_scene", { request_id: "c", anchor: "front" }), "invalid_scene_source");
   assert.equal(
-    code("show_scene", { request_id: "c", preset: "grid", model_url: "https://assets.example.com/a.glb", anchor: "front" }),
+    code("show_scene", {
+      request_id: "c",
+      preset: "grid",
+      model_url: "https://assets.example.com/a.glb",
+      anchor: "front",
+    }),
     "invalid_scene_source",
   );
 });

@@ -108,20 +108,31 @@ test("tool calls report validation failures as isError with a stable error_code"
   const call = (args: Record<string, unknown>, id: number, name = "show_scene") =>
     mcpCall(started.tunnelPort, started.env.MCP_BEARER_SECRET, name, args, id);
 
-  const badUrl = await call({ request_id: "scene-c", model_url: "http://assets.example.com/model.glb", anchor: "front" }, 6);
+  const badUrl = await call(
+    { request_id: "scene-c", model_url: "http://assets.example.com/model.glb", anchor: "front" },
+    6,
+  );
   assert.equal(badUrl.body.result.isError, true);
   assert.equal(badUrl.body.result.structuredContent.error_code, "invalid_model_url");
   assert.equal(badUrl.body.result.structuredContent.delivered, false);
 
   const goodUrl = await call(
-    { request_id: "scene-d", model_url: "https://assets.example.com/models/box.glb", anchor: "front", pose: { scale: 1 } },
+    {
+      request_id: "scene-d",
+      model_url: "https://assets.example.com/models/box.glb",
+      anchor: "front",
+      pose: { scale: 1 },
+    },
     7,
   );
   assert.equal(goodUrl.body.result.isError, false);
   assert.equal(goodUrl.body.result.structuredContent.delivered, false);
 
   const blockedHost = ["10", "1", "1", "1"].join(".");
-  const ipUrl = await call({ request_id: "scene-e", model_url: `https://${blockedHost}/model.glb`, anchor: "front" }, 8);
+  const ipUrl = await call(
+    { request_id: "scene-e", model_url: `https://${blockedHost}/model.glb`, anchor: "front" },
+    8,
+  );
   assert.equal(ipUrl.body.result.structuredContent.error_code, "invalid_model_url");
 
   const unknown = await call({ request_id: "x1", anchor: "front" }, 9, "explode");
@@ -189,7 +200,11 @@ test("malformed transport requests fail with JSON-RPC errors instead of crashing
   assert.equal(parse.status, 400);
   assert.equal(((await parse.json()) as Json).error.code, -32700);
 
-  const wrongType = await fetch(url, { method: "POST", headers: { ...headers, "content-type": "text/plain" }, body: "{}" });
+  const wrongType = await fetch(url, {
+    method: "POST",
+    headers: { ...headers, "content-type": "text/plain" },
+    body: "{}",
+  });
   assert.equal(wrongType.status, 400);
   assert.equal(((await wrongType.json()) as Json).error.code, -32600);
 

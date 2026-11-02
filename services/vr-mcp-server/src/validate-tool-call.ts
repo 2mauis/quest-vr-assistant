@@ -84,7 +84,13 @@ function normalizePose(input: unknown): Pose | null {
 }
 
 function isPlainText(value: unknown, max: number): value is string {
-  return typeof value === "string" && value.length >= 1 && value.length <= max && !/[<>\u0000]/.test(value);
+  return (
+    typeof value === "string" &&
+    value.length >= 1 &&
+    value.length <= max &&
+    !/[<>]/.test(value) &&
+    !value.includes("\u0000")
+  );
 }
 
 export function validateModelUrl(value: unknown, allowedOrigins: readonly string[]): value is string {

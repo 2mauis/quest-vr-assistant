@@ -8,6 +8,6 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["services", "shared", "scripts", "test", "*.config.ts"],
-  "exclude": ["node_modules", "**/dist"]
+  "include": ["services", "shared", "scripts", "test"],
+  "exclude": ["node_modules", "**/dist", "test/e2e"]
 }

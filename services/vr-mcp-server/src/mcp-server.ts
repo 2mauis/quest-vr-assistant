@@ -30,8 +30,8 @@ function advertiseOnly(jsonSchema: JsonSchema): StandardSchemaWithJSON<Record<st
       vendor: "quest-vr-assistant",
       validate: (value) => ({ value: value as Record<string, unknown> }),
       jsonSchema: {
-        input: () => jsonSchema as Record<string, unknown>,
-        output: () => jsonSchema as Record<string, unknown>,
+        input: () => jsonSchema,
+        output: () => jsonSchema,
       },
     },
   };

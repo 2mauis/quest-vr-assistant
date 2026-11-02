@@ -6,16 +6,35 @@ import { pathToFileURL } from "node:url";
 
 // The relay and the Tunnel are separate processes. This launcher never changes
 // DNS, remote ingress, credentials, the relay, or a running Quick Tunnel.
+/**
+ * @param {Readonly<Record<string, string | undefined>>} env
+ * @returns {{ command: string, args: string[], env: Record<string, string | undefined> }}
+ */
 export function namedTunnelPlan(env) {
   let endpoint;
-  try { endpoint = new URL(env.MCP_PUBLIC_URL); }
-  catch { throw new Error("MCP_PUBLIC_URL 必须是正式 HTTPS /mcp 地址"); }
+  try {
+    endpoint = new URL(env.MCP_PUBLIC_URL ?? "");
+  } catch {
+    throw new Error("MCP_PUBLIC_URL 必须是正式 HTTPS /mcp 地址");
+  }
   const host = endpoint.hostname;
-  if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password ||
-      endpoint.search || endpoint.hash || endpoint.pathname !== "/mcp" || endpoint.port ||
-      !host.includes(".") || host.endsWith(".") || host.includes(":") || isIP(host) ||
-      host === "localhost" || host.endsWith(".localhost") || host === "trycloudflare.com" ||
-      host.endsWith(".trycloudflare.com")) {
+  if (
+    endpoint.protocol !== "https:" ||
+    endpoint.username ||
+    endpoint.password ||
+    endpoint.search ||
+    endpoint.hash ||
+    endpoint.pathname !== "/mcp" ||
+    endpoint.port ||
+    !host.includes(".") ||
+    host.endsWith(".") ||
+    host.includes(":") ||
+    isIP(host) ||
+    host === "localhost" ||
+    host.endsWith(".localhost") ||
+    host === "trycloudflare.com" ||
+    host.endsWith(".trycloudflare.com")
+  ) {
     throw new Error("MCP_PUBLIC_URL 必须是固定域名的 HTTPS /mcp 地址，不含查询、片段或认证信息");
   }
   const tokenFile = env.TUNNEL_TOKEN_FILE;
@@ -24,8 +43,12 @@ export function namedTunnelPlan(env) {
   }
   try {
     const info = lstatSync(tokenFile);
-    if (!info.isFile() || info.size === 0 || (info.mode & 0o077) !== 0 ||
-        (typeof process.getuid === "function" && info.uid !== process.getuid())) {
+    if (
+      !info.isFile() ||
+      info.size === 0 ||
+      (info.mode & 0o077) !== 0 ||
+      (typeof process.getuid === "function" && info.uid !== process.getuid())
+    ) {
       throw new Error("unsafe token file");
     }
     accessSync(tokenFile, constants.R_OK);
@@ -36,14 +59,22 @@ export function namedTunnelPlan(env) {
   if (!["auto", "http2", "quic"].includes(protocol)) {
     throw new Error("TUNNEL_TRANSPORT_PROTOCOL 仅支持 auto、http2 或 quic");
   }
-  const childEnv = { ...env };
   // TUNNEL_HOST / PORT mean different things to the relay and cloudflared.
   // The connector needs its token file, not application or management secrets.
-  for (const key of ["TUNNEL_HOST", "TUNNEL_PORT", "TUNNEL_TOKEN", "MCP_PUBLIC_URL",
-    "MCP_BEARER_SECRET", "DEVICE_PAIRING_TOKEN", "CLOUDFLARE_API_TOKEN",
-    "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_ZONE_ID", "CF_API_TOKEN", "CF_API_KEY"]) {
-    delete childEnv[key];
-  }
+  const dropped = new Set([
+    "TUNNEL_HOST",
+    "TUNNEL_PORT",
+    "TUNNEL_TOKEN",
+    "MCP_PUBLIC_URL",
+    "MCP_BEARER_SECRET",
+    "DEVICE_PAIRING_TOKEN",
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_ZONE_ID",
+    "CF_API_TOKEN",
+    "CF_API_KEY",
+  ]);
+  const childEnv = Object.fromEntries(Object.entries(env).filter(([key]) => !dropped.has(key)));
   return {
     command: "cloudflared",
     args: ["tunnel", "--protocol", protocol, "--no-autoupdate", "run", "--token-file", tokenFile],
@@ -52,7 +83,7 @@ export function namedTunnelPlan(env) {
 }
 
 function main() {
-  if (process.argv.slice(2).some(arg => arg !== "--check")) {
+  if (process.argv.slice(2).some((arg) => arg !== "--check")) {
     throw new Error("用法：node scripts/start-named-tunnel.mjs [--check]");
   }
   const plan = namedTunnelPlan(process.env);
@@ -81,6 +112,10 @@ function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try { main(); }
-  catch (error) { console.error(error.message); process.exitCode = 1; }
+  try {
+    main();
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
 }

@@ -91,7 +91,7 @@ export async function mcpCall(port: number, token: string, name: string, args: R
     mcpHeaders(token, "tools/call", name),
     modernBody(id, "tools/call", { name, arguments: args }),
   );
-  return { response, body: json as Json };
+  return { response, body: json };
 }
 
 export interface DisplayMessage {
@@ -111,7 +111,7 @@ export class TestDisplay {
   constructor(url: string) {
     this.socket = new WebSocket(url);
     this.socket.on("message", (data) => {
-      const message = JSON.parse(String(data)) as DisplayMessage;
+      const message = JSON.parse((data as Buffer).toString("utf8")) as DisplayMessage;
       this.messages.push(message);
       for (const waiter of this.#waiters) {
         if (waiter.predicate(message)) {

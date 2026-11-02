@@ -92,9 +92,7 @@ export function createHub(config, clock = Date.now) {
         session_id: sessionId,
         session_token: sessionToken,
         expires_in: Math.floor(config.sessionTtlMs / 1000),
-        ...(grant
-          ? { refresh_token: grant.token, refresh_expires_in: Math.floor((grant.expiresAt - at) / 1000) }
-          : {}),
+        ...(grant ? { refresh_token: grant.token, refresh_expires_in: Math.floor((grant.expiresAt - at) / 1000) } : {}),
       },
     };
   }
@@ -107,7 +105,7 @@ export function createHub(config, clock = Date.now) {
     while (buffer.length > 0 && at - (buffer[0]?.at ?? at) > config.queueTtlMs) {
       const expired = /** @type {BufferedCommand} */ (buffer.shift());
       const record = idempotency.get(expired.request_id);
-      if (record && record.payload.seq === expired.seq && record.payload.delivered !== true) {
+      if (record && record.payload.seq === expired.seq && !record.payload.delivered) {
         record.payload = { ...record.payload, status: "expired", delivered: false, error_code: "expired" };
       }
     }
@@ -148,7 +146,7 @@ export function createHub(config, clock = Date.now) {
     if (typeof seq !== "number" || !Number.isInteger(seq) || seq <= ackedSeq || seq > highWater()) return;
     ackedSeq = seq;
     for (const record of idempotency.values()) {
-      if (record.payload.seq > 0 && record.payload.seq <= ackedSeq && record.payload.delivered !== true) {
+      if (record.payload.seq > 0 && record.payload.seq <= ackedSeq && !record.payload.delivered) {
         record.payload = { ...record.payload, status: "rendered", delivered: true, error_code: null };
       }
     }
@@ -165,8 +163,7 @@ export function createHub(config, clock = Date.now) {
     prune();
     const pending = buffer.filter((item) => item.seq > lastSeq);
     const gap =
-      lastSeq > highWater() ||
-      (lastSeq < highWater() && (pending.length === 0 || pending[0]?.seq !== lastSeq + 1));
+      lastSeq > highWater() || (lastSeq < highWater() && (pending.length === 0 || pending[0]?.seq !== lastSeq + 1));
     if (gap) {
       send(ws, {
         v: WIRE_VERSION,

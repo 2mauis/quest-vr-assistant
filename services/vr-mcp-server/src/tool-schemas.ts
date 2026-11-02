@@ -13,10 +13,17 @@ import {
 
 export type JsonSchema = Readonly<Record<string, unknown>>;
 
+export interface ObjectSchema extends JsonSchema {
+  type: "object";
+  additionalProperties: false;
+  required: readonly string[];
+  properties: Readonly<Record<string, JsonSchema>>;
+}
+
 export interface ToolDefinition {
   name: ToolName;
   description: string;
-  inputSchema: JsonSchema;
+  inputSchema: ObjectSchema;
 }
 
 function axes(limit: number): JsonSchema {

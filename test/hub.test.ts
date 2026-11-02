@@ -60,7 +60,10 @@ test("a command without a display is queued with a monotonically increasing seq"
     payload: { request_id: "a1", status: "queued", seq: 1, delivered: false, error_code: null },
   });
   assert.equal(second.payload.seq, 2);
-  assert.deepEqual(hub.state().panels.map((panel) => panel.panel_id), ["p"]);
+  assert.deepEqual(
+    hub.state().panels.map((panel) => panel.panel_id),
+    ["p"],
+  );
 });
 
 test("delivered becomes true only after the display acknowledges the seq", async (t) => {
