@@ -3,7 +3,7 @@ import test, { mock } from "node:test";
 import { DisplaySession, STATUS } from "../apps/web-display/src/session/display-session.ts";
 import { RelaySocket, type SocketLike } from "../apps/web-display/src/session/relay-socket.ts";
 import { RenderError, RenderTracker } from "../apps/web-display/src/session/render-tracker.ts";
-import { applyCommand, applySnapshot, EMPTY_STATE, sceneName } from "../apps/web-display/src/state/display-state.ts";
+import { applyCommand, applySnapshot, EMPTY_STATE, sceneName } from "../apps/web-display/src/model/display-state.ts";
 import type { CommandMessage, Pose } from "../shared/protocol/index.ts";
 
 const POSE: Pose = { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: 1 };

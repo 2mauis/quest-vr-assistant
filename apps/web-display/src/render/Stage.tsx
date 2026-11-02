@@ -3,7 +3,7 @@ import { addAfterEffect, type ThreeEvent } from "@react-three/fiber";
 import { useXR } from "@react-three/xr";
 import { useEffect } from "react";
 import type { RenderReporter } from "../session/display-session.ts";
-import type { DisplayState, SceneItem } from "../state/display-state.ts";
+import type { DisplayState, SceneItem } from "../model/display-state.ts";
 import { PanelCard } from "./PanelCard.tsx";
 import { placement } from "./placement.ts";
 import { PresetScene } from "./Presets.tsx";

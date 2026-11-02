@@ -112,7 +112,7 @@
 | ID | 处理 |
 |---|---|
 | W1 | 全部改为 strict TypeScript（另开 `noUncheckedIndexedAccess`），入口为 `src/main.tsx`；ESLint（typescript-eslint strictTypeChecked、react-hooks）与 Prettier 覆盖全仓，`npm run typecheck` 检查三个 TS 工程 |
-| W2 | 拆为 `session/relay-socket.ts`（连接、鉴权、心跳、看门狗、退避重连）、`session/pairing.ts`（配对与配置）、`session/render-tracker.ts`（渲染门控）、`state/display-state.ts`（纯归约）和 `session/display-session.ts`（编排与 ACK）；均可注入 socket / fetch，在 Node 单测中运行 |
+| W2 | 拆为 `session/relay-socket.ts`（连接、鉴权、心跳、看门狗、退避重连）、`session/pairing.ts`（配对与配置）、`session/render-tracker.ts`（渲染门控）、`model/display-state.ts`（纯归约）和 `session/display-session.ts`（编排与 ACK）；均可注入 socket / fetch，在 Node 单测中运行 |
 | W3 | `loadDisplayConfig` 检查 `response.ok` 与载荷形状，失败按退避重试；模型命令等待配置时受渲染超时约束，配置仍不可用则报渲染失败而非静默拒绝 |
 | W4 | 状态是不可变值：归约返回新对象，`DisplayView` 每次通知都是新快照 |
 | W5 | `RenderTracker.waitForRender` 有超时（`RENDER_TIMEOUT_MS` 20 秒），超时按渲染失败处理且不 ACK |

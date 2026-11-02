@@ -64,7 +64,7 @@ SDK 的默认 2025 回退是无会话的，并且 DELETE 返回 200。本服务�
 
 ## 迁移笔记
 
-- 手写 three.js 页面（`apps/web-display/main.js`、`xr.js`）删除。页面为 strict TypeScript：连接与重连在 `src/session/relay-socket.ts`，命令顺序、ACK 与渲染门控在 `src/session/display-session.ts` 和 `render-tracker.ts`，状态归约在 `src/state/display-state.ts`，画面在 `src/render/`，沉浸入口在 `src/xr/`。协议常量与工具 schema 在 `shared/protocol`，服务端与页面共用。
+- 手写 three.js 页面（`apps/web-display/main.js`、`xr.js`）删除。页面为 strict TypeScript：连接与重连在 `src/session/relay-socket.ts`，命令顺序、ACK 与渲染门控在 `src/session/display-session.ts` 和 `render-tracker.ts`，状态归约在 `src/model/display-state.ts`，画面在 `src/render/`，沉浸入口在 `src/xr/`。协议常量与工具 schema 在 `shared/protocol`，服务端与页面共用。
 - 预设 `grid`、`orbit`、`crystal`、`pedestal` 用 React 组件重画，锚点偏移与旧页面相同。外部 glTF 使用 `@react-three/drei` 的 `useGLTF`。面板文字使用 `@react-three/uikit`，命中区域仍是一块平面，避免字体加载失败时丢失点击。
 - 原生 `WorkspaceActivity` 只放两个空间面板：控制页和显示 WebView，并继续用 `GrokWindowActivity` 打开官方网页。不把 Grok 放进 WebView，以便继续使用浏览器登录。
 - `apps/quest-app/tunnel-probe` 继续单独构建。诊断服务的前台启动、日志线程和健康线程不再把运行时异常留在未捕获路径上；WebView 回调在 Activity 销毁后直接返回。前台服务在每条启动路径先进入前台，再决定是否停止。质量问题与处理逐条见 [质量审计](09-quality-audit.md)。

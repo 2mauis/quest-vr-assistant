@@ -9,7 +9,7 @@ import {
   sceneName,
   type DisplayState,
   type Transition,
-} from "../state/display-state.ts";
+} from "../model/display-state.ts";
 import {
   isAllowedModelUrl,
   isSessionToken,

@@ -2,7 +2,7 @@ import { Container, Text, type VanillaText } from "@react-three/uikit";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import type { RenderReporter } from "../session/display-session.ts";
-import type { PanelItem } from "../state/display-state.ts";
+import type { PanelItem } from "../model/display-state.ts";
 import { placement } from "./placement.ts";
 import { FailureBoundary } from "./RenderBoundary.tsx";
 
