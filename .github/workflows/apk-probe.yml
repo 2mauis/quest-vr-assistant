@@ -91,11 +91,11 @@ jobs:
           gradle-version: "8.14.3"
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      - name: Build native workspace and check display protocol
+      - name: Lint, test and build the native shell
         env:
           QVR_WEB_START_URL: ${{ secrets.QVR_WEB_START_URL || 'https://app.example.com/' }}
         run: |
-          gradle --no-daemon --console=plain -p apps/quest-app/spatial :core:test :app:assembleDebug
+          gradle --no-daemon --console=plain -p apps/quest-app/spatial ktlintCheck :core:test :app:assembleDebug
 
       - name: Verify and prepare native APK
         env:
@@ -129,5 +129,6 @@ jobs:
           path: |
             apps/quest-app/spatial/core/build/test-results/test/
             apps/quest-app/spatial/core/build/reports/tests/test/
+            apps/quest-app/spatial/*/build/reports/ktlint/
           retention-days: 7
           if-no-files-found: ignore

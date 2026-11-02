@@ -10,6 +10,7 @@
     "build:display": "vite build --config apps/web-display/vite.config.ts",
     "start": "npm run build:display && node services/relay/src/index.ts",
     "demo": "node scripts/demo-tools.ts",
+    "precheck:delivered": "npm run build:display",
     "check:delivered": "node scripts/mcp-delivered-check.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p apps/web-display/tsconfig.json && tsc -p test/e2e/tsconfig.json",
     "lint": "eslint .",
