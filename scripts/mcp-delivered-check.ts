@@ -35,8 +35,8 @@ const steps: Step[] = [
     args: {
       request_id: `check-panel-${id}`,
       panel_id: "info",
-      title: "Note",
-      text: "Hello display",
+      title: "提示",
+      text: "你好，显示页！Hello display",
       anchor: "right",
     },
     expect: { scene: "pedestal", panels: "1" },

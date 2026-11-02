@@ -3,6 +3,8 @@ import type { ThreeEvent } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import type { RenderReporter } from "../session/display-session.ts";
 import type { PanelItem } from "../model/display-state.ts";
+import { panelTitle, renderableText } from "../model/glyph-fallback.ts";
+import { FONT_FAMILIES, FONT_FAMILY } from "./fonts.ts";
 import { placement } from "./placement.ts";
 import { FailureBoundary } from "./RenderBoundary.tsx";
 
@@ -33,15 +35,17 @@ function PanelText({ panel, reporter }: { panel: PanelItem; reporter: RenderRepo
       height={70}
       padding={8}
       flexDirection="column"
+      fontFamilies={FONT_FAMILIES}
+      fontFamily={FONT_FAMILY}
       backgroundColor="#081020"
       borderColor="#7fd0ff"
       borderWidth={1}
     >
       <Text ref={title} fontSize={8} color="#d7f3ff">
-        {(panel.title || "信息").slice(0, TITLE_LIMIT)}
+        {panelTitle(panel.title, TITLE_LIMIT)}
       </Text>
       <Text ref={body} fontSize={5} color="#d7f3ff">
-        {panel.text}
+        {renderableText(panel.text)}
       </Text>
     </Container>
   );
