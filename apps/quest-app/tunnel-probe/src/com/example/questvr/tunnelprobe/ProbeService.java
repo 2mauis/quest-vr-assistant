@@ -28,15 +28,34 @@ import org.json.JSONObject;
 
 public final class ProbeService extends Service {
     static volatile boolean active;
-    private Session session;
+    private volatile Session session;
 
     @Override public IBinder onBind(Intent intent) { return null; }
 
     @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        // startForegroundService() obliges every path, including the ones that stop at once,
+        // to enter the foreground first; otherwise Android 12+ kills the process.
+        if (!enterForeground()) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         if (intent != null && "stop".equals(intent.getAction())) { stopSelf(); return START_NOT_STICKY; }
         if (session != null) return START_NOT_STICKY;
         // A destroyed service may still be waiting for its owned child to exit.
-        if (active) { stopSelf(); return START_NOT_STICKY; }
+        if (active) {
+            stopForeground(STOP_FOREGROUND_REMOVE);
+            stopSelf();
+            return START_NOT_STICKY;
+        }
+        int seconds = intent == null ? 600 : Math.max(15, Math.min(600, intent.getIntExtra("seconds", 600)));
+        active = true;
+        Session started = new Session(seconds);
+        session = started;
+        new Thread(started, "probe-session").start();
+        return START_NOT_STICKY;
+    }
+
+    private boolean enterForeground() {
         NotificationManager manager = getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel("probe", "Tunnel probe", NotificationManager.IMPORTANCE_LOW));
         PendingIntent open = PendingIntent.getActivity(this, 0, new Intent(this, ProbeActivity.class), PendingIntent.FLAG_IMMUTABLE);
@@ -50,20 +69,15 @@ public final class ProbeService extends Service {
         try {
             if (Build.VERSION.SDK_INT >= 34) startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
             else startForeground(1, notification);
+            return true;
         } catch (RuntimeException error) {
-            active = false;
-            stopSelf();
-            return START_NOT_STICKY;
+            return false;
         }
-        int seconds = intent == null ? 600 : Math.max(15, Math.min(600, intent.getIntExtra("seconds", 600)));
-        active = true;
-        session = new Session(seconds);
-        new Thread(session, "probe-session").start();
-        return START_NOT_STICKY;
     }
 
     @Override public void onDestroy() {
-        if (session != null) session.cancel();
+        Session current = session;
+        if (current != null) current.cancel();
         super.onDestroy();
     }
 
@@ -197,7 +211,10 @@ public final class ProbeService extends Service {
                         stage = "running"; status("running", null);
                     }
                 }
-            } catch (Exception error) { if (!cancelled) failure = error.getClass().getSimpleName(); }
+            } catch (Throwable error) {
+                // Includes Errors: an uncaught one on this thread would take the app process down.
+                if (!cancelled) failure = error.getClass().getSimpleName();
+            }
             finally {
                 cancel();
                 try {
@@ -209,6 +226,7 @@ public final class ProbeService extends Service {
                     if (token.exists() && !token.delete()) failure = "TokenCleanupFailed";
                     status(failure == null ? "stopped" : "failed", failure);
                 } catch (Exception ignored) { }
+                if (session == this) session = null;
                 stopForeground(STOP_FOREGROUND_REMOVE);
                 active = false;
                 stopSelf();
