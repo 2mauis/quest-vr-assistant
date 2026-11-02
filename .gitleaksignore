@@ -1,0 +1,2 @@
+# Synthetic 64-hex test token in a unit test (replaced in a later commit).
+066d64fefdeb9adcfd39ca1c022cb9824f4996c7:apps/quest-app/spatial/core/src/test/kotlin/com/example/questvr/display/SessionKeeperTest.kt:generic-api-key:18

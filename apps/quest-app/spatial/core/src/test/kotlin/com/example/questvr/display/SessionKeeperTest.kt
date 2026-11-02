@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionKeeperTest {
     private val endpoint = DisplayEndpoint.parse("https://display.example.com", false)
-    private val token = "0123456789abcdef".repeat(4)
+    private val token = "0f".repeat(32)
 
     private fun TestScope.session(
         expiresIn: Long,
