@@ -42,7 +42,7 @@ python3 apps/quest-app/tunnel-probe/build.py
 ## 执行路径与边界
 
 - ARM64 可执行文件以 `libcloudflared_probe.so` 随 APK 分发，由安装器提取到 `nativeLibraryDir`；`ProcessBuilder` 从该安装目录执行。它仍是 CLI 子进程，不是可供 JNI 调用的共享库。
-- 普通 Android Activity 提供开始 / 停止按钮。Service 使用 `specialUse` 前台服务类型，`START_NOT_STICKY`，最长运行 600 秒；没有开机接收器、唤醒锁或自动重启。
+- 普通 Android Activity 提供开始 / 停止按钮。Service 使用 `specialUse` 前台服务类型，`START_NOT_STICKY`，最长运行 600 秒；没有开机接收器、唤醒锁或自动重启。每次启动（包括停止请求、已有会话和旧会话仍在清理）都先进入前台再决定是否停止，避免 Android 12+ 因未及时调用 `startForeground` 结束进程；会话线程的任何异常都记为失败类型并照常清理。
 - 连接部分使用网络、读取活动网络状态和前台服务权限；网页额外声明麦克风和音频设置权限，麦克风在实际请求时授权；目标 API 34。
 - 每次启动从活动网络读取已有 DNS；同时设置进程解析器和 cloudflared 内部 DNS。使用已有 Android 系统 CA；保留正常 TLS 校验。网络切换后的自动更新尚未实现。
 - 健康服务只绑定 loopback 随机端口；仅精确 `GET /healthz` 配合 32 位小写十六进制 `X-QVR-Probe-Nonce` 返回运行码与请求码。其他路径 / 方法拒绝，头部上限 4096 字节，回执最多 64 条，私有日志最多保留 65536 字符。
