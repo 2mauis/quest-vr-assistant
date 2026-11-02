@@ -42,7 +42,7 @@ test("startup rejects placeholder and duplicated secrets", () => {
 
 test("startup rejects non-local hosts, bad numbers and bad origins", () => {
   assert.throws(() => loadConfig(testEnv({ HOST: "example.com" })), ConfigError);
-  assert.throws(() => loadConfig(testEnv({ TUNNEL_HOST: "0.0.0.0" })), ConfigError);
+  assert.throws(() => loadConfig(testEnv({ TUNNEL_HOST: "tunnel.example.com" })), ConfigError);
   assert.throws(() => loadConfig(testEnv({ ACK_WAIT_MS: "1.5" })), /ACK_WAIT_MS/);
   assert.throws(() => loadConfig(testEnv({ QUEUE_MAX_MESSAGES: "1000" })), /QUEUE_MAX_MESSAGES/);
   assert.throws(() => loadConfig(testEnv({ LOG_LEVEL: "trace" })), /LOG_LEVEL/);
