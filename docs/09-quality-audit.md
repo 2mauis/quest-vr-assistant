@@ -90,7 +90,7 @@
 | K13 | `app/.../HomeActivity.kt:22-124` | 约 100 行组合函数写在 `onCreate` 内；组合与点击回调在主线程做 Keystore 解密；每次配对新建 `OkHttpClient` | 中 |
 | K14 | `app/.../HomeActivity.kt:132-143` | `statusText` 保留不会出现的阶段分支 | 低 |
 | K15 | `tunnel-probe/.../ProbeService.java:36-39` | 由 `startForegroundService` 启动后，“已有会话 / 旧会话仍在清理”分支不调用 `startForeground` 就返回或 `stopSelf`，Android 12+ 会抛 `ForegroundServiceDidNotStartInTimeException` 使进程崩溃 | 高 |
-| K16 | `tunnel-probe/.../ProbeService.java:61`、`200` | 会话线程只捕获 `Exception`，`Error` 会绕过清理；`session` 字段从不清空 | 低 |
+| K16 | `tunnel-probe/.../ProbeService.java:61`、`200` | 会话线程只捕获 `Exception`：`Error` 虽仍执行 `finally`，但不记失败原因并作为未捕获异常结束 App 进程；`session` 字段从不清空 | 低 |
 | K17 | `apps/quest-app/spatial/**/*.kt` | 无 ktlint / detekt；通配符导入、超长行和单行多语句普遍 | 中 |
 | K18 | `core/.../RelayClient.kt:42`、`45`、`63` | 对响应体与字段使用 `!!`，协议错误表现为空指针 | 低 |
 | K19 | `app/src/debug/.../DebugDisplayActivity.kt:26-33` | 调试配对文件在主线程读取 | 低 |
@@ -102,3 +102,104 @@
 | D1 | `apps/quest-app/spatial/README.md:8-19`、`64` | 仍描述已删除的 Compose 场景、模型包围盒、Kotlin ACK 门控及“核心模块 12 项检查” | 中 |
 | D2 | `docs/07-architecture-two-track.md:41`、`82` | 称 `RelayClient` 保留 WebSocket | 低 |
 | D3 | `README.md:22` | “原生核心 12 项”等检查数已过时 | 低 |
+
+## 处理结果
+
+以下对应 `refactor/display-two-track-opus-2026-11-02` 分支上的重写。“保留”表示有意不改并写明原因。桌面与 CI 结果不代表头显验收，未在真机执行的项另行说明。
+
+### 网页显示
+
+| ID | 处理 |
+|---|---|
+| W1 | 全部改为 strict TypeScript（另开 `noUncheckedIndexedAccess`），入口为 `src/main.tsx`；ESLint（typescript-eslint strictTypeChecked、react-hooks）与 Prettier 覆盖全仓，`npm run typecheck` 检查三个 TS 工程 |
+| W2 | 拆为 `session/relay-socket.ts`（连接、鉴权、心跳、看门狗、退避重连）、`session/pairing.ts`（配对与配置）、`session/render-tracker.ts`（渲染门控）、`state/display-state.ts`（纯归约）和 `session/display-session.ts`（编排与 ACK）；均可注入 socket / fetch，在 Node 单测中运行 |
+| W3 | `loadDisplayConfig` 检查 `response.ok` 与载荷形状，失败按退避重试；模型命令等待配置时受渲染超时约束，配置仍不可用则报渲染失败而非静默拒绝 |
+| W4 | 状态是不可变值：归约返回新对象，`DisplayView` 每次通知都是新快照 |
+| W5 | `RenderTracker.waitForRender` 有超时（`RENDER_TIMEOUT_MS` 20 秒），超时按渲染失败处理且不 ACK |
+| W6 | `seq` 小于等于已确认值时只重发 ACK 不重放；出现缺号时对同一 `lastSeq` 只发一次 `resume`；快照重置序号且不 ACK |
+| W7 | 面板按 `panelId` 作 React key，渲染门控用 `panel:<id>:<revision>`，正文不进 key |
+| W8 | 配对响应用 `isSessionToken`（64 位小写十六进制）校验 |
+| W9 | 停止中继或销毁会话时 `RenderTracker.abortAll()` 以 `aborted` 结束全部等待者 |
+| W10 | 按钮状态由 `DisplayView`（`busy`、`takeover`）在 HUD 中推导，传输层不再写 UI 标志 |
+| W11 | `xr/immersive-controller.ts` 封装进入 / 退出沉浸，HUD 由 React 渲染全部控件，不再查询或改写 DOM |
+| W12 | `RemoteModel` 每次挂载克隆场景，按 URL 引用计数；最后一个使用者卸载时释放几何体、材质、纹理并 `useGLTF.clear` |
+| W13 | 面板等 uikit 字体信号就绪后才报告就绪；`FailureBoundary` 把渲染异常报告为该项失败，失败项不能被后续帧放行为 ACK |
+| W14 | 删除手写 Raycaster，选择改用 R3F `onClick`（`@react-three/xr` 把 XR 指针事件送入同一事件系统）；桌面 e2e 已覆盖，头显内选择未实测 |
+| W15 | 背景改为声明式 `<color attach="background">` |
+| W16 | 帧计数改用 R3F `addAfterEffect`，桌面循环与 XR 循环都在渲染后调用 |
+| W17 | 锚点、预设、标识与范围集中到 `shared/protocol`，类型 `Anchor` 穷举，未知锚点在服务端校验阶段即被拒绝 |
+| W18 | `ImmersiveController` 依赖显式的 `XrStoreLike` / `XrSystemLike` 接口，不再用可选调用 |
+| W19 | `window.__display` 由 `display-hooks.ts` 声明类型并注明用途；`disconnectForTest` 保留，因为 e2e 针对生产构建运行，它只断开 socket，随后按正常路径重连 |
+
+### MCP 服务
+
+| ID | 处理 |
+|---|---|
+| M1 | 全部改为 TypeScript，受 typecheck / lint / format 检查 |
+| M2 | 通过的 `validate` 加注释说明：参数错误必须由中继返回结构化 `error_code`；三份未注册的 `outputSchema` 合并为 `toolResultSchema`，注明不注册的原因（`tools/list` 从未公布，连接器会开始据此校验）；测试用它校验每个结果，金样测试锁定线上格式 |
+| M3 | `initialize` 或 `handleRequest` 失败时关闭已连接的服务与传输 |
+| M4 | `LegacySessionStore` 有上限（默认 64，满时关闭最久未用者），关闭服务时 `closeAll()` |
+| M5 | 保留取值：2025 会话 TTL 仍等于显示会话 TTL，但改为显式参数 `legacySessionTtlMs`，调用处可见 |
+| M6 | 正文读取错误区分 `payload_too_large`（413）与 `request_aborted`（400） |
+| M7 | 内部异常以 `mcp_internal` 记录错误类型（不记正文） |
+| M8 | `readBody` 等 HTTP 工具移到 `shared/node/http.ts`，两个服务都依赖它，不再互相引用 |
+| M9 | 标识正则、预设、锚点、范围只在 `shared/protocol` 定义一次 |
+| M10 | 删除 `wireMessage`、`wirePreview`、`markRenderedForTests` |
+| M11 | `isIpHostname` 只在 `shared/protocol/hosts.ts` 实现一次 |
+| M12 | `validateToolCall` 返回带判别字段的联合类型，键白名单由一个通用函数处理 |
+
+### 中继
+
+| ID | 处理 |
+|---|---|
+| R1 | 静态文件用 `stream/promises` 的 `pipeline`，读失败时销毁响应，不再抛出未处理的 `error` |
+| R2 | `close()` 先 `terminate` 全部 WebSocket（含未鉴权、已替换的），关闭 2025 MCP 会话，再 `closeAllConnections()` 关闭 HTTP 服务 |
+| R3 | 限流器只保留 `shared/node/rate-limit.ts` 一份 |
+| R4 | 拆为 `auth.ts`（Bearer 与 Host 校验）、`mcp-gateway.ts`、`display-server.ts`、`static-files.ts`、`app.ts`（组装）；`auth.test.ts` 单测缺失 / 错误 Bearer 的 401 |
+| R5 | `/mcp` 失败日志带错误类型 |
+| R6 | 去掉 `started`；关闭失败以退出码 1 结束而非未处理拒绝。保留：未捕获异常仍按 Node 默认退出，交给外层脚本重启，不吞异常带病运行；已知来源（R1）已修 |
+| R7 | `readBody` 同时监听 `close`，客户端中途断开时以 `request_aborted` 结束 |
+| R8 | 除 `hub.js` 外全部为 TypeScript。保留：`hub.js` 按约束留在 Node JS，补 JSDoc 类型并由 `checkJs` 纳入 typecheck，`seq` / ACK / `delivered` / `4410` 语义不变，由 `hub.test.ts` 单测覆盖 |
+
+### 测试、脚本与 CI
+
+| ID | 处理 |
+|---|---|
+| T1 | 新增 `typecheck`、`lint`、`format`、`format:check`；`ci` 工作流依次执行类型检查、lint、格式检查、单测、e2e 和 `check:delivered` |
+| T2 | `ci` 路径过滤加入 `shared/**`、`tsconfig*.json`、`eslint.config.js`、Prettier 配置与 `playwright.config.ts`；`quest-apk` 增加 `ktlintCheck` |
+| T3 | 新增归约、渲染门控、会话 ACK / 重复 / 缺号 / 快照 / 失败、重连退避、工具参数边界、`tools/list` 金样、hub 序号与幂等、Bearer 401 等单测 |
+| T4 | e2e 复用 `test/helpers.ts` 的 MCP 调用 |
+| T5 | `scripts/mcp-delivered-check.ts` 用官方客户端，逐步声明期望的页面属性，记录 `request_id`、`seq`、`delivered` 与页面 `data-seq` |
+| T6 | `scripts/demo-tools.ts` 用官方 MCP 客户端，`request_id` 带每次运行的随机后缀，不会命中幂等缓存。保留：`scripts/start-named-tunnel.mjs` 仍为 `.mjs`（加 JSDoc 类型），因为 `qvr.sh` 的进程标记和文档引用这个路径 |
+
+### 原生薄壳
+
+| ID | 处理 |
+|---|---|
+| K1 | 删除 `RelayClient.kt` 与 `Protocol.kt`；核心只剩 `DisplayEndpoint`、`DisplaySession`、`PairingClient`、`SessionKeeper`、`SessionInjection` |
+| K2 | 删除 `ModelStore.kt` |
+| K3 | `DisplayWebView` 只持有一个 WebView，放在 Activity 自有的 `FrameLayout` 中，通过 `ViewPanelRegistration` 交给面板；面板重建时复用同一容器 |
+| K4 | 实现 `onRenderProcessGone`：移除并销毁死掉的实例，重建并重新加载，返回 `true` 保住 App 进程 |
+| K5 | `shouldOverrideUrlLoading` 只放行显示来源；注入前用 `DisplayEndpoint.owns(view.url)` 核对来源，注入脚本只接受 64 位十六进制令牌 |
+| K6 | 重试用同一 `Runnable`，页面开始加载、换令牌和销毁时移除；回调核对 WebView 实例、令牌和销毁标记 |
+| K7 | `DisplaySessionStore` 全部为挂起函数，在 IO 调度器上做偏好读取与 Keystore 加解密；调试状态文件也在 IO 写 |
+| K8 | `SessionKeeper` 在过期前（短会话为剩余时间一半）续期，续期后保存并重新注入；401 / 403 / 400 / 404 结束并要求重新配对，429 等 60 秒，其他错误退避重试 |
+| K9 | 地址规则只在 `DisplayEndpoint.parse` 一处：仅源（无路径、查询、片段、凭据），HTTPS，调试版另允许 `http://localhost` |
+| K10 | 销毁顺序为移出父视图、`stopLoading`、替换 client、`destroy`；渲染进程已死时只移出并 `destroy` |
+| K11 | 去掉 `AtomicLong`，计数在主线程用普通字段；调试状态写在 IO |
+| K12 | 删除 `WorkspaceRuntime`，只留调试钩子 `WorkspaceDebugHook`（仅调试版赋值，Activity 销毁时只清除自己的） |
+| K13 | Home 拆为 `HomeScreen.kt` 的组合函数与 `HomeState` / `HomeActions`；IO 走挂起函数；`DisplayServices` 共用一个 `PairingClient` / `OkHttpClient` |
+| K14 | 删除 `statusText`，Home 只区分已配对与未配对；接管、重连等状态由网页面板显示 |
+| K15 | `onStartCommand` 每条路径先 `startForeground`，再处理停止、已有会话和旧会话清理 |
+| K16 | 会话线程捕获 `Throwable` 并记失败类型；`session` 改为 `volatile`，结束时清空 |
+| K17 | 加入 ktlint Gradle 插件（`ktlint_official`，`.editorconfig` 放行 Composable 命名），`ktlintCheck` 进 `build.sh` 与 `quest-apk`；Kotlin 编译开启警告即错误 |
+| K18 | `PairingClient` 不用 `!!`：响应无效时抛 `InvalidPairingResponse`，非 2xx 抛 `PairingRejected(status)`；请求改为可取消的异步调用 |
+| K19 | 调试配对文件在 IO 读取并总是删除 |
+
+### 文档
+
+| ID | 处理 |
+|---|---|
+| D1 | 重写 `apps/quest-app/spatial/README.md`，按薄壳现状描述，检查数改为实际单测 |
+| D2 | `docs/07-architecture-two-track.md` 改为核心只做配对与续期 |
+| D3 | `README.md` 检查清单按当前命令更新，不写固定数目 |

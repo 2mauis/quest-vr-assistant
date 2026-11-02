@@ -20,7 +20,9 @@ Quick Tunnel 继续作为这条重构的公网连接。本分支不修改 DNS、
 - **交互实现与部分验证：**面板抓取边缘、缩放按钮、模型碰撞体及抓取组件已实现。设备上的 XR 合成输入验证了面板拖动、模型手势抓取和缩放；去掉模拟输入层后已捕获实体右手柄的面板 `Hover` / `Select` 与缩放记录。**实体手柄直接抓取模型仍未通过。**
 - **配对与恢复：**短期会话和独立恢复授权经 Android Keystore 加密保存。原签名更新、App 重开、短期会话过期续期，以及 USB 显示通道断开 / 恢复已验证无需重新配对；主动移除连接、授权失效和设备接管保留停止边界。
 - **Tunnel 与构建：**固定具名 Tunnel 已接现有中继，`qvr` 使用该入口。早期 APK 内置 Tunnel 探针已通过 App UID、四条连接、外部健康回环及限时生命周期验证，但尚未成为正式常驻服务。GitHub Actions 已有原生 APK 与中继检查流程；本次提交尚不代表新的远端构建通过。
-- **本轮检查：**原生核心 12 项、中继 22 项、桌面浏览器 6 项通过；原生 APK 编译、签名、16 KiB 对齐、预设和网页入口检查通过。当前实机诊断包不携带 XR Operator 输入层。
+- **本轮检查（桌面与 CI）：**`npm run typecheck`、`npm run lint`、`npm run format:check`、`npm test`、`npm run test:e2e` 与 `npm run check:delivered`（官方 MCP 客户端 + 无头显示页，三个工具均 `delivered: true`）；原生 `ktlintCheck`、核心单测、APK 编译、签名、16 KiB 对齐、无预设和网页入口检查。逐项质量问题与处理见 [质量审计](docs/09-quality-audit.md)。当前实机诊断包不携带 XR Operator 输入层。
+
+以上原生显示、交互和恢复的实机结果来自已删除的 Kotlin 自绘与原生 WebSocket 路径。双轨的 WebView 薄壳与页面内回执尚未在头显运行，不能沿用这些结论。
 
 构建、同签名更新、CI 临时签名限制和功能边界见 [原生工程 README](apps/quest-app/spatial/README.md)。
 
@@ -49,6 +51,7 @@ Quest 本机 MCP 正式服务、正式 Tunnel 生命周期 / 自启、相机新�
 6. [原生空间评审与精炼计划](docs/06-native-spatial-review.md)
 7. [双轨显示架构](docs/07-architecture-two-track.md)
 8. [具名 Tunnel 计划（未执行）](docs/08-named-tunnel-plan.md)
+9. [双轨重构质量审计与处理](docs/09-quality-audit.md)
 
 正式 Cloudflare 入口的当前状态、env / 令牌分工及切换步骤见[具名 Tunnel 配置](config/cloudflared/README.md)。已验证固定入口的鉴权 / 工具发现与路径隔离；Grok 连接器与新原生显示的联合验收另行记录。
 

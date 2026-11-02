@@ -2,7 +2,7 @@
 
 此 Node 进程是阶段 1 的中继。2026-11-01 已拍板：网页语音先调用本进程的 `/mcp`，头显取得 `delivered: true` 之后，才把 MCP 迁入 APK。[决策](../../docs/05-decisions.md)与[评审](../../docs/06-native-spatial-review.md)记录边界。它还不是 Quest 原生运行时。
 
-`src/index.js` 加载 MCP、配对、WebSocket、有界内存队列，并提供 Vite 构建后的网页显示。先执行 `npm run build:display`，或直接 `npm start`。`HOST` / `PORT` 提供显示、配对与 WebSocket；`TUNNEL_HOST` / `TUNNEL_PORT` 只处理精确 `/mcp`，其他路径返回 404。两个监听均只允许 localhost。
+`src/index.ts` 加载 MCP、配对、WebSocket、有界内存队列，并提供 Vite 构建后的网页显示。Node 22.18 起直接运行 TypeScript（只用可擦除语法），无需单独编译。先执行 `npm run build:display`，或直接 `npm start`。`HOST` / `PORT` 提供显示、配对与 WebSocket；`TUNNEL_HOST` / `TUNNEL_PORT` 只处理精确 `/mcp`，其他路径返回 404。两个监听均只允许 localhost。
 
 ## 启动与配置
 
@@ -35,17 +35,36 @@ export DEVICE_PAIRING_TOKEN='<PLACEHOLDER>'
 | `IDEMPOTENCY_TTL_SECONDS`、`ACK_WAIT_MS` | 默认 300 秒 / 2000 毫秒 |
 | `MCP_RATE_PER_MINUTE`、`LOG_LEVEL` | 默认 60 / info；日志级别 error、info、debug |
 
-真实校验和范围由 [config.js](src/config.js) 执行，正文上限 256 KiB。SIGTERM 关闭监听；短期会话、队列和幂等状态只在内存。原生客户端持有独立的显示恢复授权，可在中继重启或短期会话到期后取得新会话；旧浏览器配对行为不变。恢复授权不包含 MCP 权限，轮换 `DEVICE_PAIRING_TOKEN` 后全部失效；尚无按设备单独撤销的管理接口。日志不记录秘密或面板正文。公网入口与 Quest 探针不由此启动命令创建，当前探针也不连接本服务。
+真实校验和范围由 [config.ts](src/config.ts) 执行，正文上限 256 KiB。SIGTERM 关闭监听；短期会话、队列和幂等状态只在内存。原生客户端持有独立的显示恢复授权，可在中继重启或短期会话到期后取得新会话；旧浏览器配对行为不变。恢复授权不包含 MCP 权限，轮换 `DEVICE_PAIRING_TOKEN` 后全部失效；尚无按设备单独撤销的管理接口。日志不记录秘密或面板正文。公网入口与 Quest 探针不由此启动命令创建，当前探针也不连接本服务。
 
 具名 Tunnel 的当前状态、私有凭据分工、固定入口模板与切换步骤见[正式入口说明](../../config/cloudflared/README.md)。`PUBLIC_BASE_URL` 不是 Tunnel 创建 / 启动参数；固定 MCP 入口单独使用 `MCP_PUBLIC_URL`。本机已按用户授权应用精确 `/mcp` 路由并切换 `qvr`；配置 env 本身不会自动创建或应用云端路由。
+
+## 模块
+
+| 文件 | 职责 |
+|---|---|
+| `src/hub.js` | 配对、唯一活动显示端、有序命令缓冲、ACK 与幂等结果；`delivered: true` 只来自活动显示端的 ACK。按约束保留 JS，带 JSDoc 类型并受 `checkJs` 检查 |
+| `src/app.ts` | 组装两个监听，并负责有序关闭（先终止 WebSocket，再关闭 MCP 会话与 HTTP 连接） |
+| `src/auth.ts` | Bearer 与 Host 校验；缺失或错误的 Bearer 返回 401 |
+| `src/mcp-gateway.ts` | 只转发精确 `/mcp` 的监听 |
+| `src/display-server.ts`、`src/static-files.ts` | 显示页、配对 / 续期 API 与 WebSocket 升级 |
+| `src/config.ts`、`src/device-grants.ts`、`src/security.ts`、`src/logger.ts` | 配置校验、设备恢复授权、常量时间比较与结构化日志 |
+
+协议常量与工具 schema 在仓库根目录的 `shared/protocol`，HTTP 正文读取与限流在 `shared/node`。
 
 ## 基线测试
 
 在仓库根目录执行：
 
 ```sh
+npm run typecheck
+npm run lint
+npm run format:check
 npm test
 npm run test:e2e
+npm run check:delivered
 ```
+
+`check:delivered` 启动临时中继和无头显示页，用官方 MCP 客户端依次调用三个工具，结果与截图写入 `test-results/mcp-delivered/`。测试都使用临时秘密和随机本地端口。
 
 E2E 首次使用需安装对应的无头浏览器：`npx playwright install chromium --only-shell`。测试使用随机本地端口与临时秘密并在结束后关闭，输出在忽略的 `test-results/`；模拟 XR 不能代替头显实测。契约见[协议基线](../../docs/04-protocol-baseline.md)。
