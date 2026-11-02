@@ -19,7 +19,8 @@
     "pretest": "npm run build:display",
     "test": "node --test test/*.test.ts",
     "pretest:e2e": "npm run build:display",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "codeql:local": "bash scripts/codeql-local.sh"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",

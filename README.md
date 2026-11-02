@@ -52,6 +52,7 @@ Quest 本机 MCP 正式服务、正式 Tunnel 生命周期 / 自启、相机新�
 7. [双轨显示架构](docs/07-architecture-two-track.md)
 8. [具名 Tunnel 计划（未执行）](docs/08-named-tunnel-plan.md)
 9. [双轨重构质量审计与处理](docs/09-quality-audit.md)
+10. [CodeQL 代码扫描与本地运行](docs/10-codeql.md)
 
 正式 Cloudflare 入口的当前状态、env / 令牌分工及切换步骤见[具名 Tunnel 配置](config/cloudflared/README.md)。已验证固定入口的鉴权 / 工具发现与路径隔离；Grok 连接器与新原生显示的联合验收另行记录。
 

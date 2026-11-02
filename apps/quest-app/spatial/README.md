@@ -45,6 +45,8 @@ sh apps/quest-app/spatial/build.sh
 
 [quest-apk 工作流](../../../.github/workflows/apk-probe.yml)从源码构建 ARM64 诊断组件和原生工作区，执行健康 / 网页策略检查、ktlint 与原生核心单测，再核对 APK 签名、16 KiB ZIP 对齐、组件哈希和实际网页入口。相关源码推送、PR 和手动触发均支持；手动入口需要工作流已存在于默认分支。
 
+[CodeQL 工作流](../../../.github/workflows/codeql.yml)以 `java-kotlin` 手动构建模式编译 `:core` 与 `:app` debug（同时覆盖 `tunnel-probe/src` 的 Java），不打包、不签名、不读取 Secret；说明与本地运行见 [CodeQL 代码扫描](../../../docs/10-codeql.md)。
+
 该公开仓库没有可用自建 runner，沿用已有的 GitHub 托管路线并固定为 `ubuntu-24.04`。Action 使用核对过的完整提交哈希，权限为 `contents: read`，不推送镜像、不部署服务或安装头显。
 
 构建成功后下载 `quest-assistant-arm64-<COMMIT>`，内含：
