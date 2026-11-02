@@ -9,3 +9,4 @@ apps/quest-app/
 config/
 docs/
 *.md
+apps/web-display/public/fonts/

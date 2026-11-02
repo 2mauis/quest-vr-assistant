@@ -1,0 +1,22 @@
+{
+  "font": {
+    "name": "Noto Sans SC Regular (Noto Sans CJK 2.004, region-specific subset OTF)",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf",
+    "sha256": "faa6c9df652116dde789d351359f3d7e5d2285a2b2a1f04a2d7244df706d5ea9"
+  },
+  "license": {
+    "name": "SIL Open Font License 1.1 (noto-cjk repository LICENSE)",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/LICENSE",
+    "sha256": "6a73f9541c2de74158c0e7cf6b0a58ef774f5a780bf191f2d7ec9cc53efe2bf2"
+  },
+  "unihan": {
+    "name": "Unicode 18.0.0 Unihan database (kHanyuPinlu frequencies)",
+    "url": "https://www.unicode.org/Public/18.0.0/ucd/Unihan.zip",
+    "sha256": "4c93ea9c1f636451729a840978f1667a53886af37ba854fdcce109721c63d43e"
+  },
+  "cldr": {
+    "name": "Unicode CLDR release-49 zh exemplar characters",
+    "url": "https://raw.githubusercontent.com/unicode-org/cldr/release-49/common/main/zh.xml",
+    "sha256": "95a7bf986c594389498b7c9243e255d3c466ab27df7efed8be11e9a1fccfa6ec"
+  }
+}
