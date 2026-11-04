@@ -35,6 +35,7 @@ MCP Bearer 与显示配对凭据分离，TLS 不替代授权；正式公开入�
 以 [docs/workflow-v2.md](docs/workflow-v2.md) 为当前修复工作流；与旧规则冲突时 v2 优先，既有产品架构与设备/云资源授权边界保留。先读 [功能地图](docs/FEATURE_MAP.md)、[修复规程](docs/bugfix-playbook.md)、[会前清单](docs/session-checklist.md) 和 [调试采集与阶段验收](docs/debug-session.md)。
 
 - ChatGPT/Codex 写码调试；Claude 负责需求架构；Grok Bot 统筹归档。终端操作只能通过 Codex shell。
+- 署名：谁实际写的改动署谁。author 名为 `Claude Code (for 2mauis)`、`Codex (for 2mauis)` 或 `Grok Bot Friday (for 2mauis)`，邮箱一律用 GitHub noreply；提交信息末尾必须有一行 `Agent: claude-code|codex|grok-friday|human`。`.githooks/commit-msg`（`git config core.hooksPath .githooks` 启用）在本地拒绝缺失或不匹配的提交，CI `agent-trailer` 检查 PR 中 2026-11-04T14:00+08:00 及之后的提交；更早的提交不追溯、不改写、不 force push。
 - 先红后绿：先提交独立回归测试的失败复现（在 base 断言失败，不得以安装或导入错误冒充），再提交修复并在 head 通过；当次禁止 Git 写操作时仅准备改动。
 - 在哪个操作面报告就在哪个操作面复验；无头、模拟与构建通过不得报告为“头显通过”，头显 bug 必须回到真实设备复验并记录用户结论。
 - 不自动合并，agent 不主动发起合并；仅 Jack 语音发起、明确指定 PR，并通过 merge-gate 确认码与平台人工审批后执行。`gh pr merge` 与 `merge-gate confirm` 永不加入自动允许。
