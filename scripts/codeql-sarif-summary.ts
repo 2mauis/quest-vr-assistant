@@ -71,7 +71,7 @@ function readAlerts(file: string): { label: string; alerts: Alert[] } {
   return { label, alerts };
 }
 
-const cell = (text: string) => text.replace(/\|/gu, "\\|");
+const cell = (text: string) => text.replace(/[&<>|`\\\r\n]/gu, (char) => `&#${char.codePointAt(0)};`);
 
 function markdown(label: string, alerts: Alert[]): string {
   const counts = new Map<string, number>();
@@ -80,13 +80,13 @@ function markdown(label: string, alerts: Alert[]): string {
     const rank = (band: string) => (BANDS.includes(band) ? BANDS.indexOf(band) : BANDS.length);
     return rank(a) - rank(b);
   });
-  const lines = [`### CodeQL: ${label}`, "", `${alerts.length} result(s)`, ""];
+  const lines = [`### CodeQL: ${cell(label)}`, "", `${alerts.length} result(s)`, ""];
   if (alerts.length === 0) return `${lines.join("\n")}\n`;
-  lines.push(`| ${bands.join(" | ")} |`, `|${bands.map(() => "---").join("|")}|`);
+  lines.push(`| ${bands.map(cell).join(" | ")} |`, `|${bands.map(() => "---").join("|")}|`);
   lines.push(`| ${bands.map((band) => String(counts.get(band))).join(" | ")} |`, "");
   lines.push("| Rule | Severity | Location |", "|---|---|---|");
   for (const alert of alerts.slice(0, MARKDOWN_ROW_LIMIT)) {
-    lines.push(`| \`${cell(alert.ruleId)}\` | ${alert.severity} | \`${cell(alert.where)}\` |`);
+    lines.push(`| <code>${cell(alert.ruleId)}</code> | ${cell(alert.severity)} | <code>${cell(alert.where)}</code> |`);
   }
   if (alerts.length > MARKDOWN_ROW_LIMIT)
     lines.push("", `${alerts.length - MARKDOWN_ROW_LIMIT} more in the SARIF artifact.`);

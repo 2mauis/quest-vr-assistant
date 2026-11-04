@@ -17,7 +17,7 @@ python3 apps/quest-app/tunnel-probe/build.py
 
 脚本核对源码提交和无关修改，把 `native/` 下的两项探针适配复制到该独立 checkout，以 `-mod=readonly` 使用上游锁定依赖。它通过 SDK 自带 `aapt2`、`javac`、`d8`、`zipalign` 和 `apksigner` 构建，不需要 Gradle 或 Android Studio；这不决定后续 MR 工程的技术栈。
 
-产物在忽略的 `build/`：`quest-tunnel-probe.apk`（保留原文件名，应用显示名为 Quest Assistant）、构建哈希、临时调试签名及 Go 缓存。将示例网页地址替换成经核实的官方入口；真实站点只进入本地生成代码和 APK，不写进公开源文件。APK 包含原生组件的许可证 / 声明文件，不包含连接凭据。调试签名不是发布密钥，WebView 调试仅随 App 的 debuggable 标记开启。
+产物在忽略的 `build/`：`quest-tunnel-probe.apk`（保留原文件名，应用显示名为 Quest Assistant）、构建哈希、临时调试签名及 Go 缓存。将示例网页地址替换成经核实的官方入口；真实站点只进入本地生成代码和 APK，不写进公开源文件。APK 包含原生组件的许可证 / 声明文件，不包含连接凭据。调试签名不是发布密钥，源 Manifest 默认禁用 debuggable；当前仅用于 debug 的 build.py 在 aapt2 link 时用 --debug-mode 开启，WebView 调试仅随 App 的 debuggable 标记开启。
 
 ## 默认网页入口：复用浏览器登录
 

@@ -19,7 +19,7 @@
         </intent>
     </queries>
     <application android:label="Quest Assistant" android:theme="@android:style/Theme.Material.Light.NoActionBar"
-        android:debuggable="true" android:allowBackup="false" android:extractNativeLibs="true"
+        android:debuggable="false" android:allowBackup="false" android:extractNativeLibs="true"
         android:usesCleartextTraffic="false" android:hardwareAccelerated="true">
         <activity android:name=".ProbeActivity" android:exported="true">
             <intent-filter>

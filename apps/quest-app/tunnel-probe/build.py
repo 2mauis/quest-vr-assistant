@@ -57,7 +57,7 @@ def main():
     for folder in (classes, dex):
         if folder.exists(): shutil.rmtree(folder)
         folder.mkdir()
-    run(tools / "aapt2", "link", "-I", platform, "--manifest", ROOT / "AndroidManifest.xml", "-o", OUT / "unsigned.apk")
+    run(tools / "aapt2", "link", "-I", platform, "--manifest", ROOT / "AndroidManifest.xml", "--debug-mode", "-o", OUT / "unsigned.apk")
     bootclasspath = os.pathsep.join(str(p) for p in (platform, tools / "core-lambda-stubs.jar"))
     run(java / "javac", "-encoding", "UTF-8", "-source", "8", "-target", "8", "-Xlint:-options", "-bootclasspath", bootclasspath,
         "-d", classes, *sorted((ROOT / "src").rglob("*.java")), generated)
