@@ -89,3 +89,19 @@ test("display renders show_scene, replays a panel, then clears", async ({ page }
   expect(notes.filter((note) => note.startsWith("pageerror"))).toEqual([]);
   writeFileSync(testInfo.outputPath("e2e.log"), `${notes.join("\n")}\nscene_orange=${afterScene.orange}\n`);
 });
+
+test("debug watermark matches the served build metadata and is opt-in", async ({ page, request }) => {
+  const current = state();
+  const base = `http://localhost:${current.port}`;
+  const response = await request.get(`${base}/api/debug/build`);
+  expect(response.ok()).toBe(true);
+  const build = (await response.json()) as { build_id: string; built_at: string };
+  expect(build.build_id).toMatch(/^[a-f0-9]{7,40}$/);
+  expect(Number.isFinite(Date.parse(build.built_at))).toBe(true);
+  await page.goto(base);
+  await expect(page.locator("#build-watermark")).not.toBeVisible();
+  await expect(page.locator("body")).toHaveAttribute("data-build-id", build.build_id);
+  await page.goto(`${base}/?debug=1`);
+  await expect(page.locator("#build-watermark")).toContainText(build.build_id);
+  await expect(page.locator("#build-watermark")).toContainText(build.built_at);
+});

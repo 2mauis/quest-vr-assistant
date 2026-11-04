@@ -48,3 +48,7 @@ UserSettings/
 
 # Kotlin compiler state
 .kotlin/
+
+# Private debugging evidence and session confirmation state
+.debug-evidence/
+.privacy-words

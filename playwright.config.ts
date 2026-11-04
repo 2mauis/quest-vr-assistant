@@ -7,6 +7,8 @@ export default defineConfig({
   use: {
     viewport: { width: 1280, height: 720 },
     headless: true,
+    trace: process.env.BUGFIX_TRACE ? "on" : "retain-on-failure",
+    screenshot: "only-on-failure",
   },
   reporter: [["list"]],
 });
