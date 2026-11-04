@@ -22,7 +22,7 @@ export function privacyFindings(text: string, words: string[] = []): string[] {
     ["email", /\b[\w.+-]+@(?![\w.-]*example\.com\b)[\w.-]+\.[a-z]{2,}\b/i],
     ["IPv4", /\b(?:\d{1,3}\.){3}\d{1,3}\b/],
     ["IPv6", /(?:\b[\da-f]{1,4}:){2,}[\da-f:]*|::[\da-f]{1,4}\b/i],
-    ["internal domain", /\b[\w-]+(?:\.[\w-]+)*\.(?:local|internal|lan|home|localdomain|ts\.net)\b/i],
+    ["internal domain", /\b[\w-]+(?:\.[\w-]+)*\.(?:local|internal|lan|home|localdomain|corp|ts\.net)\b/i],
     ["hostname assignment", /\bhostname\s*[:=]\s*(?!localhost\b)[\w.-]+/i],
     ["secret", /\b(?:gh[pousr]_[a-z0-9]{16,}|github_pat_[a-z0-9_]{16,}|sk-[a-z0-9]{16,})/i],
   ];
