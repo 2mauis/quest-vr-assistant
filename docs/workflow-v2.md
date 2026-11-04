@@ -47,7 +47,6 @@
 | `ci.yml` | Relay unit and browser checks | 任意 pull_request；push 到 `refactor/**` 且命中路径过滤；workflow_dispatch |
 | `apk-probe.yml` | Quest Assistant ARM64 APK | 改动 `apps/quest-app/**` 或该工作流的 pull_request / push 到 `refactor/**`；workflow_dispatch |
 | `codeql.yml` | Analyze (javascript-typescript / actions / java-kotlin) | 见 [CodeQL](10-codeql.md) |
-| `claude.yml` | Claude mention | 受信协作者在 PR 评论、行内评论或 review 中提到 @claude |
 
 ## 阶段计划
 
