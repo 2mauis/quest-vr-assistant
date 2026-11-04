@@ -42,8 +42,10 @@ try {
   ] as const) {
     const dir = path.join(temp, name);
     mkdirSync(dir);
-    const archive = execFileSync("git", ["archive", revision]);
-    execFileSync("tar", ["-x", "-C", dir], { input: archive });
+    // Write the archive to disk: the repo snapshot exceeds spawnSync's default 1 MiB buffer (ENOBUFS).
+    const tarball = path.join(temp, `${name}.tar`);
+    execFileSync("git", ["archive", "--output", tarball, revision]);
+    execFileSync("tar", ["-x", "-f", tarball, "-C", dir]);
     // Overlay only added regression files; production code always comes from the selected revision.
     for (const file of files) {
       mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });

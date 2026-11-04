@@ -13,6 +13,20 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { captureOptions } from "./workflow/logic.ts";
 const options = captureOptions(process.argv.slice(2));
+const missing = ["adb", "ffmpeg"].filter((tool) => {
+  try {
+    execFileSync(tool, ["-version"], { stdio: "ignore" });
+    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT";
+  }
+});
+if (missing.length) {
+  console.error(
+    `quest-capture: missing ${missing.join(", ")} on PATH; install it and run npm run doctor first (待实机验证)`,
+  );
+  process.exit(2);
+}
 const dir = path.resolve(".debug-evidence", new Date().toISOString().replaceAll(":", "-"));
 mkdirSync(dir, { recursive: true, mode: 0o700 });
 const run = (cmd: string, args: string[]) => execFileSync(cmd, args, { stdio: "pipe", timeout: 240_000 });
