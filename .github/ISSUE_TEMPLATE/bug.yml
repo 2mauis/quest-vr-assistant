@@ -1,0 +1,23 @@
+name: Bug report
+description: 脱敏复现与同面验证
+body:
+  - type: textarea
+    id: feature
+    attributes:
+      label: 功能 ID 与操作面
+      description: 参考 docs/FEATURE_MAP.md；桌面无头、APK 构建或头显实机
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: 复现步骤、期望与实际
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: build_id、seq、脱敏证据摘要
+      description: 不填 IP、主机名、邮箱、地址、token 或原始日志；图片只用渲染区裁剪帧
+    validations:
+      required: true
