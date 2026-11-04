@@ -20,7 +20,12 @@
     "test": "node --test test/*.test.ts",
     "pretest:e2e": "npm run build:display",
     "test:e2e": "playwright test",
-    "codeql:local": "bash scripts/codeql-local.sh"
+    "codeql:local": "bash scripts/codeql-local.sh",
+    "quest-capture": "node scripts/quest-capture.ts",
+    "doctor": "node scripts/doctor.ts",
+    "privacy-scan": "node scripts/privacy-scan.ts",
+    "bugfix-evidence": "node scripts/bugfix-evidence.ts",
+    "merge-gate": "node scripts/merge-gate.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.4.0",
