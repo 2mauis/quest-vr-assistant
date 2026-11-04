@@ -6,9 +6,13 @@ let text: string;
 if (args[0] === "--file" && args[1]) text = readFileSync(args[1], "utf8");
 else if (args[0] === "--stdin") text = readFileSync(0, "utf8");
 else if (args[0] === "--diff" && args[1])
-  text = execFileSync("git", ["diff", "--no-ext-diff", "--unified=0", args[1], "--", ".", ":!package-lock.json"], {
-    encoding: "utf8",
-  })
+  text = execFileSync(
+    "git",
+    ["diff", "--no-ext-diff", "--unified=0", args[1], "--", ".", ":(glob,exclude)**/package-lock.json"],
+    {
+      encoding: "utf8",
+    },
+  )
     .split("\n")
     .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
     .join("\n");

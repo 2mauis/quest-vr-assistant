@@ -23,14 +23,29 @@ export function privacyFindings(text: string, words: string[] = []): string[] {
     ["IPv4", /\b(?:\d{1,3}\.){3}\d{1,3}\b/],
     ["IPv6", /(?:\b[\da-f]{1,4}:){2,}[\da-f:]*|::[\da-f]{1,4}\b/i],
     ["internal domain", /\b[\w-]+(?:\.[\w-]+)*\.(?:local|internal|lan|home|localdomain|ts\.net)\b/i],
-    ["hostname assignment", /\bhostname\s*[:=]\s*(?!localhost\b)[\w.-]+/i],
     ["secret", /\b(?:gh[pousr]_[a-z0-9]{16,}|github_pat_[a-z0-9_]{16,}|sk-[a-z0-9]{16,})/i],
   ];
-  const urlHosts = [...text.matchAll(/\b(?:https?|wss?):\/\/([\w.-]+)/gi)].map((m) => (m[1] ?? "").toLowerCase());
-  const allowedHost = (host: string) => host === "localhost" || host === "example.com" || host.endsWith(".example.com");
+  // Public documentation/source hosts and RFC 2606 reserved names are not personal data.
+  const publicHosts = new Set([
+    "github.com",
+    "docs.github.com",
+    "raw.githubusercontent.com",
+    "www.unicode.org",
+    "scripts.sil.org",
+    "temporary.trycloudflare.com",
+  ]);
+  const allowedHost = (host: string) =>
+    host === "localhost" || publicHosts.has(host) || /(?:^|\.)example\.(?:com|net|org)$/.test(host);
+  const urlHosts = [...text.matchAll(/\b(?:https?|wss?):\/\/(?:[^\s/@]*@)?([\w.-]+)/gi)].map((m) =>
+    (m[1] ?? "").toLowerCase().replace(/\.+$/, ""),
+  );
+  const assignedHosts = [...text.matchAll(/\bhostname\s*[:=]\s*["']?([\w.-]+)/gi)].map((m) =>
+    (m[1] ?? "").toLowerCase(),
+  );
   return [
     ...rules.filter(([, rule]) => rule.test(text)).map(([name]) => name),
     ...(urlHosts.some((host) => !allowedHost(host)) ? ["hostname"] : []),
+    ...(assignedHosts.some((host) => host !== "string" && !allowedHost(host)) ? ["hostname assignment"] : []),
     ...words.filter((w) => w.trim() && text.toLowerCase().includes(w.toLowerCase())).map(() => "local denylist"),
   ];
 }
