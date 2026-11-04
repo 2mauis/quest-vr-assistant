@@ -118,8 +118,8 @@ function captureFixture(dir: string, mode: string) {
 const mode = ${JSON.stringify(mode)};
 cp.execFileSync = (cmd, args) => { if(args[0] === '-version') return ''; if(args[1] === 'screenrecord') throw new Error('original capture failure'); if(args[1] === 'rm') throw new Error('cleanup failure'); return ''; };
 cp.spawn = () => ({on(){}, kill(){}});
-if(mode === 'empty') fs.openSync = () => {throw new Error('open failure');};
-if(mode === 'retained') { const open = fs.openSync; fs.openSync = (...args) => {fs.writeFileSync(args[0] + '.retained', 'evidence'); return open(...args);}; }
+if(mode === 'empty') {const open = fs.openSync; fs.openSync = (...args) => {if(String(args[0]).endsWith('logcat.txt')) throw new Error('open failure'); return open(...args);};}
+if(mode === 'retained') { const open = fs.openSync; fs.openSync = (...args) => {if(String(args[0]).endsWith('logcat.txt')) fs.writeFileSync(args[0] + '.retained', 'evidence'); return open(...args);}; }
 syncBuiltinESMExports();`,
   );
   return spawnSync(process.execPath, ["--import", preload, path.join(root, "scripts/quest-capture.ts"), "1"], {
