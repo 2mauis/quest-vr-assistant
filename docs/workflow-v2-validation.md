@@ -12,6 +12,6 @@
 | R7 正确任务目录 | 待验证 | — | 会前核对 |
 | R8 归档 | 待验证 | — | 先人工摘要 |
 | 阶段 1 语音请求十秒采集 | 待实机验证 | — | 不以本地脚本测试替代 |
-| 阶段 1 Feature Map 驱动桌面截图 | 桌面 E2E 通过 | 2026-11-04 | 见 display.spec.ts；桌面通过不代表头显通过 |
+| 阶段 1 Feature Map 驱动桌面截图 | 桌面 E2E 通过 | 2026-11-04 | 见 `test/e2e/display.spec.ts`；桌面通过不代表头显通过 |
 
-本次本地验证：typecheck、lint 通过；npm test 67/67；浏览器 8/8；diff 隐私扫描与 git diff --check 通过。未执行远端 Actions、gitleaks 全历史扫描、真实 PR 红绿历史演练、doctor 或设备采集。合并脚本从未运行，未修改远端 required checks 或启用 hook。
+2026-11-04 引入工作流时的本地记录（历史结果，不作为之后任何变更的实测）：typecheck、lint 通过；npm test 67/67；浏览器 8/8；diff 隐私扫描与 git diff --check 通过。当时未执行远端 Actions、gitleaks 全历史扫描、真实 PR 红绿历史演练、doctor 或设备采集；合并脚本未运行，未修改远端 required checks 或启用 hook。之后的结果须另记日期与操作面。

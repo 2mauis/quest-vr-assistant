@@ -1,6 +1,6 @@
 # Feature Map
 
-以 [双轨架构](07-architecture-two-track.md) 和 [工作流](workflow-v2.md) 为准。运行 `npm run test:e2e -- test/e2e/display.spec.ts` 可由临时秘密、随机端口驱动 show_scene 并在 test-results 中产出截图；global-setup 自动启动中继。不要把生产凭据写入测试。
+以 [双轨架构](07-architecture-two-track.md) 和 [工作流](workflow-v2.md) 为准。运行 `npm run test:e2e -- test/e2e/display.spec.ts` 可由临时秘密、随机端口驱动 show_scene 并在 test-results 中产出截图；`test/e2e/global-setup.ts` 自动启动中继。`test/e2e/quest.spec.ts` 不用 global-setup，而是每个用例经 `relay` fixture（`test/helpers.ts` 的 `startTestApp`）启动独立中继；`test/*.test.ts` 单测由 `npm test` 运行。不要把生产凭据写入测试。
 
 | ID | 功能 | 入口 |
 |---|---|---|
