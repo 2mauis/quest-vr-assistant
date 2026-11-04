@@ -132,8 +132,8 @@ test("capture preserves original and cleanup errors", () =>
   temporary((dir) => {
     const result = captureFixture(dir, "retained");
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /original capture failure/);
-    assert.match(result.stderr, /cleanup failure/);
+    assert.match(result.stderr, /Error: original capture failure/);
+    assert.match(result.stderr, /Error: cleanup failure/);
     assert.ok(readdirSync(path.join(dir, ".debug-evidence")).length);
   }));
 test("capture removes empty evidence directory on setup failure", () =>
