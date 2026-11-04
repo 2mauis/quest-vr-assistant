@@ -25,6 +25,16 @@
 6. PR 必须有 `## Repro (before)`、`## Verify (after)`、`## 风险分级` 三个非空小节（fix PR 由 bugfix-evidence 检查），注明操作面、低/中/高与理由、是否实机验证。独立审查完成且 CI 全绿后进入自动合并流程；重大改动先等待 Jack 批准。失败或不确定则继续修复；不把语音否定解释为通过。
 7. 合并前重新核对 PR、head SHA、裁决、风险分级、同面复验、独立审查与全部 CI；重大改动须有 Jack 批准。通过 merge-gate 或 `gh pr merge --squash --match-head-commit <sha>` 合并已核验的固定 head；SHA 变化则重新检查，禁止 `--admin` 和绕过保护。完成后通知 Jack，由 Grok Bot 归档 issue、PR、证据摘要与结论。
 
+## Spec 优先与评审
+
+重大改动的范围和批准要求统一沿用上文「角色与硬约束」的定义，不确定时按重大改动处理。实施前由人工在 claude.ai 启动 Claude（Opus 5.5），按 [spec 模板](specs/TEMPLATE.md) 编写 `docs/specs/<feature>.md`，明确需求、不变量与验收测试；每项验收映射到测试文件或测试用例名。spec 不替代重大改动批准。
+
+Codex 按 spec 先写失败测试，再实现使测试通过；失败必须来自行为断言，不得以安装或导入错误充当复现。提交顺序及禁止 Git 写操作时的处理沿用既有先红后绿规则。开 PR 前必须执行 Codex `/review` 自查并处理问题。
+
+PR 打开时由 Codex GitHub App 自动评审；Claude 仅在重大改动合并前由人工在 claude.ai 发起复审，普通 PR 不要求 Claude 复审。评审结果按待合并 head 核对，仍须满足既有独立审查、批准、CI 与平台保护要求。这是协作要求，不代表仓库文件已配置账号侧 App 或完成评审。
+
+CI 只运行确定性检查，包括现有测试、静态检查及新增 `spec-requires-tests`，不调用 AI 判断需求或审查代码。Claude 不通过 Actions 运行，不配置相关仓库 Secret，不在本机轮询评审。新检查用 `git diff --name-only base...HEAD` 的文件集合：新增或修改 `docs/specs/*.md`（排除 `TEMPLATE.md`、`README.md`）时，同一 diff 必须触及 `test/*.test.ts` 或 `test/e2e/*.spec.ts`。删除 spec 不触发，重命名按删除与新增处理；测试内容与覆盖质量仍由评审验证。用法与边界见 [spec 目录说明](specs/README.md)。本次新增 job 不修改平台 required checks。
+
 ## B1–B7 仓库入口
 
 | 项目 | 入口与边界 |
@@ -43,6 +53,7 @@
 |---|---|---|
 | `privacy.yml` | privacy-scan、gitleaks | pull_request（opened、synchronize、reopened、edited）；push 到 main |
 | `workflow-v2.yml` | bugfix-evidence | pull_request（另含 labeled、unlabeled）；workflow_dispatch 时只检出、不运行脚本 |
+| `workflow-v2.yml` | spec-requires-tests | 仅 pull_request；功能 spec 新增或修改须伴随测试文件改动 |
 | `workflow-v2.yml` | agent-trailer | 仅 pull_request；检查截止时间后的新提交 |
 | `ci.yml` | Relay unit and browser checks | 任意 pull_request；push 到 `refactor/**` 且命中路径过滤；workflow_dispatch |
 | `apk-probe.yml` | Quest Assistant ARM64 APK | 改动 `apps/quest-app/**` 或该工作流的 pull_request / push 到 `refactor/**`；workflow_dispatch |

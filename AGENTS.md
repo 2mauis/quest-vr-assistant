@@ -35,9 +35,11 @@ MCP Bearer 与显示配对凭据分离，TLS 不替代授权；正式公开入�
 以 [docs/workflow-v2.md](docs/workflow-v2.md) 为当前修复工作流；与旧规则冲突时 v2 优先，既有产品架构与设备/云资源授权边界保留。先读 [功能地图](docs/FEATURE_MAP.md)、[修复规程](docs/bugfix-playbook.md)、[会前清单](docs/session-checklist.md) 和 [调试采集与阶段验收](docs/debug-session.md)。
 
 - ChatGPT/Codex 写码调试；Claude 负责需求架构；Grok Bot 统筹归档。终端操作只能通过 Codex shell。
-- GitHub 工作流中 Codex 一律使用 Astra（`gpt-6-astra`）。Claude 评审走账号侧（Claude GitHub App 的托管 Code Review 或云端 Claude Code），不用仓库 Secret、不用 Actions；模型在 Claude 账号侧设置为 Opus 5.5（`claude-opus-5-5`）。
+- GitHub 工作流中 Codex 一律使用 Astra（`gpt-6-astra`）。Claude 的 spec 编写与重大改动合并前复审均由人工在 claude.ai 启动，使用 Opus 5.5（`claude-opus-5-5`）。
 - 署名与贡献者（统一规则，钩子与 CI 按此校验）：谁实际写改动署谁；邮箱一律 GitHub noreply；提交信息末尾 trailer 块固定如下——Claude Code：author `Claude Code (for 2mauis)`，trailer `Agent: claude-code` + `Co-authored-by: Claude <noreply@anthropic.com>`；Codex：author `Codex (for 2mauis)`，trailer `Agent: codex` + `Co-authored-by: Codex <noreply@openai.com>`；Grok Bot：author `Grok Bot Friday (for 2mauis)`，trailer `Agent: grok-friday`；人工：`Agent: human`。两个 Co-authored-by 邮箱是厂商默认值，GitHub 解析到 `claude`、`codex` 账号，在提交和 PR 页显示头像；仓库 Contributors 页只按 author 邮箱统计，不计 Co-authored-by。`.githooks/commit-msg`（`git config core.hooksPath .githooks`）本地拦截，CI `agent-trailer` 检查 PR 中 2026-11-04T14:00+08:00 及之后的提交；更早提交不追溯、不改写、不 force push。
 - 先红后绿：先提交独立回归测试的失败复现（在 base 断言失败，不得以安装或导入错误冒充），再提交修复并在 head 通过；当次禁止 Git 写操作时仅准备改动。
+- 必须遵守 [spec 优先与评审](docs/workflow-v2.md#spec-优先与评审)：重大改动先由 Claude 写 `docs/specs/<feature>.md`（需求、不变量、验收测试），Codex 按 spec 先写失败测试再实现，开 PR 前执行 Codex `/review` 自查；重大改动范围与批准要求沿用下文定义。
+- PR 打开时由 Codex GitHub App 自动评审；Claude 仅在重大改动合并前由人工发起复审。CI 只做确定性检查（含 `spec-requires-tests`），不运行 Claude 或其他 AI 评审，不为 Claude 配置仓库 Secret，不在本机轮询评审。
 - 在哪个操作面报告就在哪个操作面复验；无头、模拟与构建通过不得报告为“头显通过”，头显 bug 必须回到真实设备复验并记录用户结论。
 - 自动处理链：发现 issue → Claude Code 分诊、排序并裁决 → Codex 修复并补回归测试（沿用既有署名规则）；裁决为不修复的告警自动 dismiss 并记录理由；独立审查完成、CI 全绿后，通过 merge-gate 或 `gh pr merge --squash --match-head-commit <sha>` 自动合并，随后通知 Jack。禁止使用 `--admin` 或绕过分支保护。
 - 重大改动必须等待 Jack 批准，至少包括：分支保护、仓库设置、secrets 或 CI required checks 变更；权限或安全边界变更（含 Tunnel 授权边界）；对外发布或部署；架构或公开接口变更；数据删除或不可逆迁移；超过约 500 行非测试代码的改动或跨多个子系统的重构；依赖主版本升级。不确定时按重大改动处理。
