@@ -5,7 +5,7 @@ body:
     id: feature
     attributes:
       label: 功能 ID 与操作面
-      description: 参考 docs/FEATURE_MAP.md；桌面无头、APK 构建或头显实机
+      description: 参考 docs/FEATURE_MAP.md 的功能 ID（pairing、show-scene、panels、clear、reconnect、models、immersive）；操作面为桌面无头、APK 构建或头显实机
     validations:
       required: true
   - type: textarea
@@ -17,7 +17,7 @@ body:
   - type: textarea
     id: evidence
     attributes:
-      label: build_id、seq、脱敏证据摘要
-      description: 不填 IP、主机名、邮箱、地址、token 或原始日志；图片只用渲染区裁剪帧
+      label: build_id、request_id、seq、脱敏证据摘要
+      description: 提交前先用 npm run privacy-scan -- --stdin 检查正文；不填 IP、主机名、邮箱、地址、token 或原始日志，原始证据留在 .debug-evidence/；图片只用人工检查过的渲染区裁剪帧
     validations:
       required: true

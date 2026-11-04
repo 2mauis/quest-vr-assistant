@@ -12,7 +12,7 @@
 
 `paths-ignore` 排除 `node_modules`、`dist`、`build`、Gradle / Kotlin 状态、生成的字体 JSON / PNG 与 `sc-glyphs.ts`、`test/fixtures` 金样和 Playwright 报告。仓库里的 Go（探针原生库）与 Python（构建 / 检查脚本）未纳入扫描。
 
-触发：push 到 `main` 与本重构分支、任意 `pull_request`、每周一定时、手动 `workflow_dispatch`。定时与手动入口只在工作流文件进入默认分支后生效，在此之前只有 push 和 PR 会触发。权限只有 `security-events: write`、`contents: read`、`actions: read`。Action 按仓库惯例固定到提交 SHA。每个语言的 SARIF 另作为构件 `codeql-sarif-<language>` 保留 14 天，告警摘要写入 run 的 Summary（见下节）。摘要步骤用 `actions/setup-node` 准备 Node 22，不增加任何权限。
+触发：push 到 `main` 与本重构分支、任意 `pull_request`、每周一定时、手动 `workflow_dispatch`。定时与手动入口只对默认分支上的工作流文件生效；该文件已随 PR #5 进入 main。权限只有 `security-events: write`、`contents: read`、`actions: read`。Action 按仓库惯例固定到提交 SHA。每个语言的 SARIF 另作为构件 `codeql-sarif-<language>` 保留 14 天，告警摘要写入 run 的 Summary（见下节）。摘要步骤用 `actions/setup-node` 准备 Node 22，不增加任何权限。
 
 ## 在 GitHub 上查看结果
 

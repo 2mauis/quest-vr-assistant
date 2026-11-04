@@ -28,11 +28,11 @@ MCP Bearer 与显示配对凭据分离，TLS 不替代授权；正式公开入�
 
 恢复依靠 Git 历史及既有归档；未经要求不新增备份目录、备份副本或备份分支。旧部署资料删除后，不为它补建镜像、发布配置或其他运行设施。
 
-按变更风险验证：文档检查文件清单、链接、事实边界和隐私；行为变更运行相关测试。现有基线命令为 `npm test`、`npm run test:e2e`，测试使用临时秘密和随机本地端口。未执行的检查写明，历史结果不能当成本次实测。托管端首包目标 P50 ≤1.5 秒、P90 ≤2.5 秒尚无实测样本。
+按变更风险验证：文档检查文件清单、链接、事实边界和隐私；行为变更运行相关测试。现有基线命令为 `npm test`、`npm run test:e2e`（CI 另跑 `npm run typecheck`、`npm run lint`、`npm run format:check`、`npm run check:delivered`），测试使用临时秘密和随机本地端口。未执行的检查写明，历史结果不能当成本次实测。托管端首包目标 P50 ≤1.5 秒、P90 ≤2.5 秒尚无实测样本。
 
 ## 修 bug 工作流（v2）
 
-以 [docs/workflow-v2.md](docs/workflow-v2.md) 为当前修复工作流；与旧规则冲突时 v2 优先，既有产品架构与设备/云资源授权边界保留。先读 [功能地图](docs/FEATURE_MAP.md)、[修复规程](docs/bugfix-playbook.md) 和 [会前清单](docs/debug-session.md)。
+以 [docs/workflow-v2.md](docs/workflow-v2.md) 为当前修复工作流；与旧规则冲突时 v2 优先，既有产品架构与设备/云资源授权边界保留。先读 [功能地图](docs/FEATURE_MAP.md)、[修复规程](docs/bugfix-playbook.md)、[会前清单](docs/session-checklist.md) 和 [调试采集与阶段验收](docs/debug-session.md)。
 
 - ChatGPT/Codex 写码调试；Claude 负责需求架构；Grok Bot 统筹归档。终端操作只能通过 Codex shell。
 - 先红后绿：先提交独立回归测试的失败复现（在 base 断言失败，不得以安装或导入错误冒充），再提交修复并在 head 通过；当次禁止 Git 写操作时仅准备改动。

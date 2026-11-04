@@ -1,9 +1,10 @@
 # Quest 原生 MR 空间助手
 
-<!-- Relative badge links resolve against blob/<branch>/; this branch name contains one "/", so they need ../../../ here and ../../ on main. -->
-[![codeql](../../../actions/workflows/codeql.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/codeql.yml)
-[![ci](../../../actions/workflows/ci.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/ci.yml)
-[![quest-apk](../../../actions/workflows/apk-probe.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/apk-probe.yml)
+<!-- Relative badge links resolve against blob/<branch>/; on main they need ../../ (one extra ../ per "/" in a branch name). ci and quest-apk do not run on push to main, so their badges follow pull_request runs. -->
+[![codeql](../../actions/workflows/codeql.yml/badge.svg?branch=main)](../../actions/workflows/codeql.yml)
+[![ci](../../actions/workflows/ci.yml/badge.svg?event=pull_request)](../../actions/workflows/ci.yml)
+[![quest-apk](../../actions/workflows/apk-probe.yml/badge.svg?event=pull_request)](../../actions/workflows/apk-probe.yml)
+[![privacy](../../actions/workflows/privacy.yml/badge.svg?branch=main)](../../actions/workflows/privacy.yml)
 
 > 当前检查点：双轨显示重构，2026-11-01。桌面浏览器可以驱动新的网页显示；头显安装与语音闭环仍待机主实机验收。结构见 [双轨架构](docs/07-architecture-two-track.md)。历史实机证据见 [实机记录](docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
 
@@ -24,7 +25,7 @@ Quick Tunnel 继续作为这条重构的公网连接。本分支不修改 DNS、
 - **网页入口与登录保留：**原签名覆盖更新保留浏览器登录，直达已确认的 Bot。独立横屏任务默认 `1280×720 dp`；连续打开三次复用同一任务，未新增 Custom Tab。真实地址仅由私有构建配置输入。旧 `0.3-browser` 的登录 / 基础网页语音已获用户验收，不等于新工作区的语音工具联动通过。
 - **交互实现与部分验证：**面板抓取边缘、缩放按钮、模型碰撞体及抓取组件已实现。设备上的 XR 合成输入验证了面板拖动、模型手势抓取和缩放；去掉模拟输入层后已捕获实体右手柄的面板 `Hover` / `Select` 与缩放记录。**实体手柄直接抓取模型仍未通过。**
 - **配对与恢复：**短期会话和独立恢复授权经 Android Keystore 加密保存。原签名更新、App 重开、短期会话过期续期，以及 USB 显示通道断开 / 恢复已验证无需重新配对；主动移除连接、授权失效和设备接管保留停止边界。
-- **Tunnel 与构建：**固定具名 Tunnel 已接现有中继，`qvr` 使用该入口。早期 APK 内置 Tunnel 探针已通过 App UID、四条连接、外部健康回环及限时生命周期验证，但尚未成为正式常驻服务。GitHub Actions 已有原生 APK 与中继检查流程；本次提交尚不代表新的远端构建通过。
+- **Tunnel 与构建：**固定具名 Tunnel 已接现有中继，`qvr` 使用该入口。早期 APK 内置 Tunnel 探针已通过 App UID、四条连接、外部健康回环及限时生命周期验证，但尚未成为正式常驻服务。GitHub Actions 已有原生 APK 与中继检查流程；这些记录不代表之后任一提交的远端构建通过，以对应 run 为准。
 - **本轮检查（桌面与 CI）：**`npm run typecheck`、`npm run lint`、`npm run format:check`、`npm test`、`npm run test:e2e` 与 `npm run check:delivered`（官方 MCP 客户端 + 无头显示页，三个工具均 `delivered: true`）；原生 `ktlintCheck`、核心单测、APK 编译、签名、16 KiB 对齐、无预设和网页入口检查。逐项质量问题与处理见 [质量审计](docs/09-quality-audit.md)。当前实机诊断包不携带 XR Operator 输入层。
 
 以上原生显示、交互和恢复的实机结果来自已删除的 Kotlin 自绘与原生 WebSocket 路径。双轨的 WebView 薄壳与页面内回执尚未在头显运行，不能沿用这些结论。
@@ -58,6 +59,8 @@ Quest 本机 MCP 正式服务、正式 Tunnel 生命周期 / 自启、相机新�
 8. [具名 Tunnel 计划（未执行）](docs/08-named-tunnel-plan.md)
 9. [双轨重构质量审计与处理](docs/09-quality-audit.md)
 10. [CodeQL 代码扫描与本地运行](docs/10-codeql.md)
+
+修 bug 工作流 v2：[工作流](docs/workflow-v2.md)、[验证记录](docs/workflow-v2-validation.md)、[功能地图](docs/FEATURE_MAP.md)、[修复规程](docs/bugfix-playbook.md)、[会前清单](docs/session-checklist.md)、[调试采集与阶段验收](docs/debug-session.md)。
 
 正式 Cloudflare 入口的当前状态、env / 令牌分工及切换步骤见[具名 Tunnel 配置](config/cloudflared/README.md)。已验证固定入口的鉴权 / 工具发现与路径隔离；Grok 连接器与新原生显示的联合验收另行记录。
 

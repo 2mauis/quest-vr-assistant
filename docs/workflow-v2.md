@@ -16,23 +16,34 @@
 
 1. 会前执行 `npm run doctor`；人工完成 [权限清单](session-checklist.md)。语音入口复述现象和触发条件，确认理解后分诊。
 2. 阅读 [FEATURE_MAP](FEATURE_MAP.md)，确定桌面无头、APK 构建或头显操作面。静态画面取截图；动画执行 `npm run quest-capture -- 10`。本地证据放 `.debug-evidence/`。
-3. issue/PR 正文先执行 `npm run privacy-scan -- --file <PLACEHOLDER>`。写明功能 ID、构建、复现步骤、期望/实际与证据摘要。
+3. issue/PR 正文先执行 `npm run privacy-scan -- --file <PLACEHOLDER>`（或经管道用 `--stdin`）。写明功能 ID、构建、复现步骤、期望/实际与证据摘要。
 4. 先提交只含失败测试的复现，再做最小修复；参见 [修复规程](bugfix-playbook.md)。仅实机可达时先写步骤和 before 证据，但本仓库 fix PR 的自动闸门仍要求新增可运行的低层回归测试，不能把实机记录伪装成自动红绿证据。
-5. 构建并在原操作面复验。显示页 `?debug=1` 常驻短 SHA、seq、构建时间；body 的 data-build-id/data-built-at 和私有 `/api/debug/build` 可核对。短 SHA 不含分支名，避免分支名泄露个人信息；未提交源码可能不同，工作区状态必须另行记录。
-6. PR 必须有 `## Repro (before)`、`## Verify (after)`、`## 风险分级`，注明操作面、低/中/高与理由、是否实机验证。独立审查与 CI 完成后才进入语音合并流程。失败或不确定则继续修复；不把语音否定解释为通过。
-7. 用户 发起后执行 prepare，播报 PR、head、检查、风险、证据与四位码；confirm 仅在复述正确、未过期、SHA 未变时执行固定 head 合并。完成后 Grok Bot 归档 issue、PR、证据摘要与结论。
+5. 构建并在原操作面复验。显示页 `?debug=1` 显示短 SHA、构建时间、seq 与最近一次状态更新时间；body 的 data-build-id/data-built-at 和私有 `/api/debug/build` 可核对。短 SHA 不含分支名，避免分支名泄露个人信息；未提交源码可能不同，工作区状态必须另行记录。
+6. PR 必须有 `## Repro (before)`、`## Verify (after)`、`## 风险分级` 三个非空小节（fix PR 由 bugfix-evidence 检查），注明操作面、低/中/高与理由、是否实机验证。独立审查与 CI 完成后才进入语音合并流程。失败或不确定则继续修复；不把语音否定解释为通过。
+7. Jack 语音发起后执行 prepare；脚本输出 PR、head、检查结论、操作面与四位确认码，风险与证据摘要由执行者另行播报。confirm 仅在复述正确、未过期、SHA 未变时执行固定 head 合并。完成后 Grok Bot 归档 issue、PR、证据摘要与结论。
 
 ## B1–B7 仓库入口
 
 | 项目 | 入口与边界 |
 |---|---|
-| B1 | `npm run quest-capture -- 10 [--source adb\|mqdh] [--eye left\|right\|both]`；默认 adb 完整画面（单眼裁剪须先实机验证），2 fps、拼图、logcat、可选 QUEST_RELAY_LOG 文件新增日志。adb 录制最长 180 秒；MQDH 先人工完成新录制，QUEST_MQDH_CAPTURES 可覆盖目录。MQDH 导入时日志仅覆盖处理时段，不冒充录制窗口日志。 |
-| B2 | Vite 注入 SHA/时间并生成 build-info.json；水印默认关闭；调试 API 只在私有显示监听器，不扩大公网路由。DOM 水印在沉浸 XR 中是否可见待实机验证。 |
-| B3 | doctor 检查唯一授权 adb 设备、型号可读、MQDH、gh 登录、ffmpeg、磁盘和 localhost healthz；不输出设备标识或鉴权正文；不授予权限。QUEST_RELAY_URL 指定实际显示端口。 |
+| B1 | `npm run quest-capture -- <秒数> [--source adb\|mqdh] [--eye left\|right\|both]`，秒数为 1–180 的整数（两种来源都只取前这么多秒）。默认 adb 完整画面（单眼裁剪须先实机验证；`--source mqdh` 时忽略 `--eye`）。两种来源都要求 PATH 上有 adb 与 ffmpeg，缺失时退出码 2。输出到 `.debug-evidence/<ISO 时间>/`：`capture.mp4`、2 fps 的 `frame-*.jpg`、`contact-sheet.jpg`、`logcat.txt`、`manifest.json`，设置 QUEST_RELAY_LOG 时另存该文件运行期间新增的 `relay.log`。MQDH 先人工完成新录制，只导入五分钟内最新的 mp4；QUEST_MQDH_CAPTURES 可覆盖目录。MQDH 导入时日志仅覆盖处理时段，不冒充录制窗口日志。 |
+| B2 | Vite 注入短 SHA（可用 DISPLAY_BUILD_SHA 覆盖）与构建时间并生成 build-info.json；水印默认关闭；调试 API 只在私有显示监听器，不扩大公网路由。DOM 水印在沉浸 XR 中是否可见待实机验证。 |
+| B3 | doctor 检查唯一授权 adb 设备、型号可读、MQDH 进程、gh 登录、ffmpeg、至少 2 GiB 可用磁盘和 healthz 返回 `ready: true`；末尾列出须人工确认的权限项。不输出设备标识或鉴权正文；不授予权限。QUEST_RELAY_URL 必须是 localhost 的 healthz 地址，未设置时默认 `http://localhost:8787/healthz`；中继 `PORT` 没有默认值，通常需按实际显示端口设置。 |
 | B4 | Feature Map、每功能页、修复规程与 issue 模板。 |
-| B5 | fix/* 或 bugfix 标签触发 bugfix-evidence，其余成功跳过。新增独立 test/*.test.ts 在 base 和测试提交上必须红、head 必须绿；依赖安装/构建/导入失败不算有效红。历史必须含修复之前的测试专用提交。初期不配置 required；CI 继续 typecheck/lint/test/e2e。BUGFIX_TRACE=1 保留成功用例 trace。 |
-| B6 | privacy-scan 扫 diff 或正文；PR CI 加 gitleaks，无需额外许可秘密。PRIVACY_WORDLIST 指向不入库词表；`.githooks/pre-push` 为可选 hook，需用户启用，不修改本机 Git 配置。正则不能可靠发现任意姓名、裸主机名或自然语言地址，仍需人工审查。 |
-| B7 | `npm run merge-gate -- prepare N` / `confirm N CODE`。只编写，当前变更不执行。私有 verified-pr.json 记录 repository（仓库全名）、pr、sha、verifiedAt（毫秒）、surface、reportedSurface、voiceInitiatedBy、unresolvedP0P1、approvalMode；仅真实同面复验与人工审查后填写。voiceInitiatedBy 为 `Jack`、unresolvedP0P1 为 0，approvalMode 必须 ask-for-approval。记录一小时、确认码两分钟失效，一次尝试即消费。重新读取全部检查与 SHA，调用 gh pr merge --squash --match-head-commit。人工记录无法抵抗恶意 agent，平台权限隔离是额外必需条件。 |
+| B5 | 分支名以 `fix/` 开头或带 `bugfix` 标签的 PR 运行 bugfix-evidence，其余输出 skip 并成功。先检查 PR 正文三个证据小节非空；再要求 PR 新增（不是修改）独立 `test/*.test.ts`，在 base 和测试专用提交上必须断言失败、head 必须通过；依赖安装/构建/导入失败不算有效红。历史必须含修复之前的测试专用提交。初期不配置 required；CI 继续 typecheck、lint、format:check、test、test:e2e 与 check:delivered。BUGFIX_TRACE 非空时本地 `npm run test:e2e` 保留成功用例 trace（bugfix-evidence 只跑 `node --test`，不受影响）。 |
+| B6 | `npm run privacy-scan` 无参数时扫 `git diff HEAD` 新增行与未跟踪文本文件；`-- --diff BASE` 扫相对 BASE 的新增行（排除 package-lock.json）；`-- --file FILE` 或 `-- --stdin` 扫单个正文。PR CI 扫 diff 与 PR 正文并另跑 gitleaks，无需额外许可秘密。PRIVACY_WORDLIST 指向不入库词表（如被忽略的 `.privacy-words`）；`.githooks/pre-push` 为可选 hook，需用户自行 `git config core.hooksPath .githooks` 启用，脚本不修改本机 Git 配置。正则不能可靠发现任意姓名、裸主机名或自然语言地址，仍需人工审查。 |
+| B7 | `npm run merge-gate -- prepare N` / `confirm N CODE`。agent 不主动运行，只在 Jack 语音发起后执行。私有 `.debug-evidence/verified-pr.json` 记录 repository（仓库全名）、pr、sha、verifiedAt（毫秒）、surface、reportedSurface、voiceInitiatedBy、unresolvedP0P1、approvalMode；仅真实同面复验与人工审查后填写。voiceInitiatedBy 为 `Jack`、unresolvedP0P1 为 0，approvalMode 必须 ask-for-approval。记录一小时、确认码两分钟失效，一次尝试即消费（确认状态存于 `.debug-evidence/merge-confirmation.json`）。PR 须为 OPEN、非草稿、mergeStateStatus 为 CLEAN，head 等于记录的 sha；privacy-scan、gitleaks、bugfix-evidence、Relay unit and browser checks 必须成功，且检查汇总中其余每项也必须为 COMPLETED/SUCCESS。confirm 前重新读取全部检查与 SHA，调用 gh pr merge --squash --match-head-commit。人工记录无法抵抗恶意 agent，平台权限隔离是额外必需条件。 |
+
+## CI 检查名与触发
+
+| 工作流文件 | 检查名（job name） | 触发 |
+|---|---|---|
+| `privacy.yml` | privacy-scan、gitleaks | pull_request（opened、synchronize、reopened、edited）；push 到 main |
+| `workflow-v2.yml` | bugfix-evidence | pull_request（另含 labeled、unlabeled）；workflow_dispatch 时只检出、不运行脚本 |
+| `ci.yml` | Relay unit and browser checks | 任意 pull_request；push 到 `refactor/**` 且命中路径过滤；workflow_dispatch |
+| `apk-probe.yml` | Quest Assistant ARM64 APK | 改动 `apps/quest-app/**` 或该工作流的 pull_request / push 到 `refactor/**`；workflow_dispatch |
+| `codeql.yml` | Analyze (javascript-typescript / actions / java-kotlin) | 见 [CodeQL](10-codeql.md) |
+| `claude.yml` | Claude mention | 受信协作者在 PR 评论、行内评论或 review 中提到 @claude |
 
 ## 阶段计划
 
