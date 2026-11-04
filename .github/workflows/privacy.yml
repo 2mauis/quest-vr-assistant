@@ -1,0 +1,40 @@
+name: privacy
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+permissions:
+  contents: read
+jobs:
+  privacy-scan:
+    name: privacy-scan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22"
+      - name: Scan additions and PR body
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if git cat-file -e "$BASE" 2>/dev/null; then
+            node scripts/privacy-scan.ts --diff "$BASE"
+          else
+            git ls-files -z | xargs -0 cat | node scripts/privacy-scan.ts --stdin
+          fi
+          printf '%s' "$PR_BODY" | node scripts/privacy-scan.ts --stdin
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan with gitleaks CLI (no license or external secret)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.3 git /repo --redact --no-banner
