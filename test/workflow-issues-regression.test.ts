@@ -155,7 +155,7 @@ test("doctor uses relay PORT for health request", () =>
       env: { ...process.env, PORT: "45678", QUEST_RELAY_URL: "" },
     });
     // Unset override rather than supplying an invalid empty URL.
-    const env = { ...process.env, PORT: "45678" };
+    const env: NodeJS.ProcessEnv = { ...process.env, PORT: "45678" };
     delete env.QUEST_RELAY_URL;
     const actual = spawnSync(process.execPath, ["--import", preload, path.join(root, "scripts/doctor.ts")], {
       cwd: dir,

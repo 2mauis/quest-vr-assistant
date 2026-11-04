@@ -72,7 +72,8 @@ try {
       try {
         run("adb", ["shell", "rm", "-f", remote]);
       } catch (error) {
-        if (captureFailed) throw new AggregateError([captureError, error], "Capture and remote cleanup failed");
+        if (captureFailed)
+          throw new AggregateError([captureError, error], "Capture and remote cleanup failed", { cause: error });
         throw error;
       }
       if (captureFailed) throw captureError;
