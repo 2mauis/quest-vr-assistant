@@ -81,3 +81,36 @@ export function evidenceSections(body: string) {
     (heading) => body.includes(heading) && body.split(heading)[1]?.split("\n## ")[0]?.trim(),
   );
 }
+
+export function checkAgentTrailer({
+  message,
+  authorName,
+  authorEmail,
+}: {
+  message: string;
+  authorName?: string | undefined;
+  authorEmail?: string | undefined;
+}): string[] {
+  const names: Record<string, string> = {
+    "claude-code": "Claude Code (for 2mauis)",
+    codex: "Codex (for 2mauis)",
+    "grok-friday": "Grok Bot Friday (for 2mauis)",
+  };
+  const errors: string[] = [];
+  const lines = message.trimEnd().split(/\r?\n/);
+  const agents = lines.filter((line) => /^Agent\s*:/i.test(line));
+  if (agents.length !== 1) errors.push("trailer-count");
+  else {
+    const agent = /^Agent: (claude-code|codex|grok-friday|human)$/.exec(agents[0] ?? "")?.[1];
+    if (!agent) errors.push("trailer-value");
+    else {
+      const lastBlank = lines.lastIndexOf("");
+      const trailers = lines.slice(lastBlank + 1);
+      if (lastBlank < 1 || !trailers.every((line) => /^[A-Za-z][A-Za-z-]*: .+$/.test(line)))
+        errors.push("trailer-position");
+      if (authorName !== undefined && agent !== "human" && authorName !== names[agent]) errors.push("author-name");
+    }
+  }
+  if (authorEmail !== undefined && !authorEmail.endsWith("@users.noreply.github.com")) errors.push("author-email");
+  return errors;
+}
