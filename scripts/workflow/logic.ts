@@ -18,8 +18,9 @@ export function captureOptions(args: string[]) {
 }
 
 export function privacyFindings(text: string, words: string[] = []): string[] {
+  const allowedEmails = new Set(["noreply@anthropic.com", "noreply@openai.com"]);
+  const emails = [...text.matchAll(/\b[\w.+-]+@(?![\w.-]*example\.com\b)[\w.-]+\.[a-z]{2,}\b/gi)];
   const rules: [string, RegExp][] = [
-    ["email", /\b[\w.+-]+@(?![\w.-]*example\.com\b)[\w.-]+\.[a-z]{2,}\b/i],
     ["IPv4", /\b(?:\d{1,3}\.){3}\d{1,3}\b/],
     ["IPv6", /(?:\b[\da-f]{1,4}:){2,}[\da-f:]*|::[\da-f]{1,4}\b/i],
     ["internal domain", /\b[\w-]+(?:\.[\w-]+)*\.(?:local|internal|lan|home|localdomain|ts\.net)\b/i],
@@ -43,6 +44,7 @@ export function privacyFindings(text: string, words: string[] = []): string[] {
     (m[1] ?? "").toLowerCase(),
   );
   return [
+    ...(emails.some(([email]) => !allowedEmails.has(email)) ? ["email"] : []),
     ...rules.filter(([, rule]) => rule.test(text)).map(([name]) => name),
     ...(urlHosts.some((host) => !allowedHost(host)) ? ["hostname"] : []),
     ...(assignedHosts.some((host) => host !== "string" && !allowedHost(host)) ? ["hostname assignment"] : []),
@@ -95,4 +97,44 @@ export function evidenceSections(body: string) {
   return ["## Repro (before)", "## Verify (after)", "## 风险分级"].every(
     (heading) => body.includes(heading) && body.split(heading)[1]?.split("\n## ")[0]?.trim(),
   );
+}
+
+export function checkAgentTrailer({
+  message,
+  authorName,
+  authorEmail,
+}: {
+  message: string;
+  authorName?: string | undefined;
+  authorEmail?: string | undefined;
+}): string[] {
+  const names: Record<string, string> = {
+    "claude-code": "Claude Code (for 2mauis)",
+    codex: "Codex (for 2mauis)",
+    "grok-friday": "Grok Bot Friday (for 2mauis)",
+  };
+  const coauthors: Record<string, string> = {
+    "claude-code": "Claude <noreply@anthropic.com>",
+    codex: "Codex <noreply@openai.com>",
+  };
+  const errors: string[] = [];
+  const lines = message.trimEnd().split(/\r?\n/);
+  const agents = lines.filter((line) => /^Agent\s*:/i.test(line));
+  if (agents.length !== 1) errors.push("trailer-count");
+  else {
+    const agent = /^Agent: (claude-code|codex|grok-friday|human)$/.exec(agents[0] ?? "")?.[1];
+    if (!agent) errors.push("trailer-value");
+    else {
+      const lastBlank = lines.lastIndexOf("");
+      const trailers = lines.slice(lastBlank + 1);
+      if (lastBlank < 1 || !trailers.every((line) => /^[A-Za-z][A-Za-z-]*: .+$/.test(line)))
+        errors.push("trailer-position");
+      const coauthor = coauthors[agent];
+      if (coauthor && !trailers.some((line) => /^Co-authored-by: (.+)$/i.exec(line)?.[1] === coauthor))
+        errors.push("coauthor-missing");
+      if (authorName !== undefined && agent !== "human" && authorName !== names[agent]) errors.push("author-name");
+    }
+  }
+  if (authorEmail !== undefined && !authorEmail.endsWith("@users.noreply.github.com")) errors.push("author-email");
+  return errors;
 }
