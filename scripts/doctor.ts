@@ -37,7 +37,7 @@ if (disk.bavail * disk.bsize < 2 * 1024 ** 3) {
   process.exitCode = 1;
 } else console.log("PASS disk");
 try {
-  const url = new URL(process.env.QUEST_RELAY_URL ?? "http://localhost:8787/healthz");
+  const url = new URL(process.env.QUEST_RELAY_URL ?? `http://localhost:${process.env.PORT ?? "8787"}/healthz`);
   if (url.hostname !== "localhost") throw new Error("localhost required");
   const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
   const body = (await response.json()) as { ready?: boolean };

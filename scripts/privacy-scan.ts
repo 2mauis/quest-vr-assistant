@@ -2,6 +2,14 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { privacyFindings } from "./workflow/logic.ts";
 const args = process.argv.slice(2);
+if (!(
+  args.length === 0 ||
+  (args.length === 1 && args[0] === "--stdin") ||
+  (args.length === 2 && ["--file", "--diff"].includes(args[0] ?? "") && args[1] && !args[1].startsWith("--"))
+)) {
+  console.error("usage: privacy-scan [--file FILE | --diff BASE | --stdin]");
+  process.exit(2);
+}
 let text: string;
 if (args[0] === "--file" && args[1]) text = readFileSync(args[1], "utf8");
 else if (args[0] === "--stdin") text = readFileSync(0, "utf8");
@@ -21,7 +29,7 @@ else if (!args.length)
     .split("\n")
     .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
     .join("\n");
-else throw new Error("usage: privacy-scan [--file FILE | --diff BASE]");
+else throw new Error("unreachable argument mode");
 if (!args.length) {
   const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard", "-z"], { encoding: "utf8" })
     .split("\0")

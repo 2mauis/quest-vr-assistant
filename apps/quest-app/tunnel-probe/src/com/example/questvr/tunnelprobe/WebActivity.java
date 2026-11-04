@@ -117,7 +117,7 @@ public final class WebActivity extends Activity {
         settings.setSupportMultipleWindows(true);
         settings.setJavaScriptCanOpenWindowsAutomatically(false);
         settings.setAllowFileAccess(false);
-        settings.setAllowContentAccess(true); // Only user-selected content URIs from the system picker.
+        settings.setAllowContentAccess(false); // File uploads use WebChromeClient.onShowFileChooser.
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSafeBrowsingEnabled(true);
         settings.setUseWideViewPort(true); settings.setLoadWithOverviewMode(true);

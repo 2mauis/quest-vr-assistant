@@ -5,7 +5,7 @@
 - 打开正确项目，确认 Voice 登录、麦克风、Screen context。
 - 人工授权屏幕录制、Screen & System Audio Recording、辅助功能及 Computer Use 各应用首次访问。
 - 打开 MQDH Cast 并置前，确认清晰度、水印和输入；关闭含敏感信息的窗口与通知。不要清除既有浏览器登录。
-- 核对实际显示端口后设置 QUEST_RELAY_URL 为 localhost healthz URL（未设置时 doctor 默认 `http://localhost:8787/healthz`）；如需日志，设置 QUEST_RELAY_LOG 为本机中继日志文件。
+- 核对实际显示端口后设置 QUEST_RELAY_URL 为 localhost healthz URL（未设置时 doctor 使用 `http://localhost:${PORT ?? 8787}/healthz`）；如需日志，设置 QUEST_RELAY_LOG 为本机中继日志文件。
 - 确认合并操作使用平台人工审批，禁止自动允许 merge-gate confirm 或 gh pr merge。
 - 只保留脱敏摘要；真实日志、视频、确认记录留在被忽略的 `.debug-evidence/`。
 

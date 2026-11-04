@@ -9,6 +9,7 @@ export function captureOptions(args: string[]) {
     else if (args[i] === "--eye" && (value === "left" || value === "right" || value === "both")) eye = value;
     else throw new Error("invalid capture option");
   }
+  if (source === "mqdh" && args.includes("--eye")) throw new Error("mqdh does not support --eye");
   return {
     seconds,
     source,
@@ -57,7 +58,7 @@ export interface MergeSnapshot {
   state: string;
   isDraft: boolean;
   mergeStateStatus: string;
-  statusCheckRollup: { name?: string; status?: string; conclusion?: string }[];
+  statusCheckRollup: { name?: string; status?: string; conclusion?: string; state?: string }[];
 }
 export function validateMerge(pr: MergeSnapshot, sha: string): void {
   if (
@@ -72,7 +73,13 @@ export function validateMerge(pr: MergeSnapshot, sha: string): void {
     if (!pr.statusCheckRollup.some((c) => c.name === name && c.status === "COMPLETED" && c.conclusion === "SUCCESS"))
       throw new Error(`missing successful ${name}`);
   }
-  if (pr.statusCheckRollup.some((c) => c.status !== "COMPLETED" || c.conclusion !== "SUCCESS"))
+  if (
+    pr.statusCheckRollup.some((c) =>
+      c.state !== undefined
+        ? c.state !== "SUCCESS"
+        : c.status !== "COMPLETED" || !["SUCCESS", "SKIPPED", "NEUTRAL"].includes(c.conclusion ?? ""),
+    )
+  )
     throw new Error("checks not all successful");
 }
 

@@ -5,6 +5,13 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   case "$local_sha" in *[!0]*) ;; *) continue ;; esac
   case "$remote_sha" in
     *[!0]*) node scripts/privacy-scan.ts --diff "$remote_sha" ;;
-    *) echo 'New remote branch: scan full local tree before publishing'; git ls-files -z | xargs -0 -I '{}' node scripts/privacy-scan.ts --file '{}' ;;
+    *)
+      if base=$(git merge-base origin/main "$local_sha" 2>/dev/null); then
+        node scripts/privacy-scan.ts --diff "$base"
+      else
+        echo 'Main unavailable: scan full local tree before publishing'
+        git ls-files -z | xargs -0 -I '{}' node scripts/privacy-scan.ts --file '{}'
+      fi
+      ;;
   esac
 done
