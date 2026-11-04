@@ -24,11 +24,13 @@ export function privacyFindings(text: string, words: string[] = []): string[] {
     ["IPv6", /(?:\b[\da-f]{1,4}:){2,}[\da-f:]*|::[\da-f]{1,4}\b/i],
     ["internal domain", /\b[\w-]+(?:\.[\w-]+)*\.(?:local|internal|lan|home|localdomain|ts\.net)\b/i],
     ["hostname assignment", /\bhostname\s*[:=]\s*(?!localhost\b)[\w.-]+/i],
-    ["hostname", /\b(?:https?|wss?):\/\/(?!localhost\b|(?:[\w-]+\.)*example\.com\b)(?:[\w-]+\.)*[\w-]+/i],
     ["secret", /\b(?:gh[pousr]_[a-z0-9]{16,}|github_pat_[a-z0-9_]{16,}|sk-[a-z0-9]{16,})/i],
   ];
+  const urlHosts = [...text.matchAll(/\b(?:https?|wss?):\/\/([\w.-]+)/gi)].map((m) => (m[1] ?? "").toLowerCase());
+  const allowedHost = (host: string) => host === "localhost" || host === "example.com" || host.endsWith(".example.com");
   return [
     ...rules.filter(([, rule]) => rule.test(text)).map(([name]) => name),
+    ...(urlHosts.some((host) => !allowedHost(host)) ? ["hostname"] : []),
     ...words.filter((w) => w.trim() && text.toLowerCase().includes(w.toLowerCase())).map(() => "local denylist"),
   ];
 }
