@@ -7,7 +7,11 @@ import test from "node:test";
 import { checkAgentTrailer } from "../scripts/workflow/logic.ts";
 
 const email = "test@" + "users.noreply.github.com";
-const valid = { message: "Change\n\nAgent: codex\n", authorName: "Codex (for 2mauis)", authorEmail: email };
+const valid = {
+  message: "Change\n\nCo-authored-by: Codex <noreply@openai.com>\nAgent: codex\n",
+  authorName: "Codex (for 2mauis)",
+  authorEmail: email,
+};
 test("agent trailer validates identities, count, values and trailer placement", () => {
   assert.deepEqual(checkAgentTrailer(valid), []);
   assert.deepEqual(checkAgentTrailer({ ...valid, message: "Change" }), ["trailer-count"]);
@@ -21,12 +25,41 @@ test("agent trailer validates identities, count, values and trailer placement", 
   );
   assert.deepEqual(checkAgentTrailer({ message: valid.message }), []);
   assert.deepEqual(checkAgentTrailer({ ...valid, message: valid.message + "Agent: codex\n" }), ["trailer-count"]);
-  assert.deepEqual(checkAgentTrailer({ ...valid, message: "Change\n\nAgent: codex\n\nBody" }), ["trailer-position"]);
+  assert.deepEqual(checkAgentTrailer({ ...valid, message: valid.message + "\nBody" }), [
+    "trailer-position",
+    "coauthor-missing",
+  ]);
   for (const [agent, authorName] of [
     ["claude-code", "Claude Code (for 2mauis)"],
     ["grok-friday", "Grok Bot Friday (for 2mauis)"],
   ])
-    assert.deepEqual(checkAgentTrailer({ ...valid, message: `Change\n\nAgent: ${agent}`, authorName }), []);
+    assert.deepEqual(
+      checkAgentTrailer({
+        ...valid,
+        message: `Change\n\nCo-authored-by: Claude <noreply@anthropic.com>\nAgent: ${agent}`,
+        authorName,
+      }),
+      [],
+    );
+});
+
+test("agent coauthors must match the agent in the final trailer block", () => {
+  for (const [agent, identity] of [
+    ["codex", "Codex <noreply@openai.com>"],
+    ["claude-code", "Claude <noreply@anthropic.com>"],
+  ]) {
+    const check = (message: string) => checkAgentTrailer({ message });
+    assert.deepEqual(check(`Change\n\nAgent: ${agent}`), ["coauthor-missing"]);
+    for (const key of ["Co-authored-by", "Co-Authored-By", "co-authored-by"])
+      assert.deepEqual(check(`Change\n\nAgent: ${agent}\n${key}: ${identity}`), []);
+    assert.deepEqual(check(`Change\n\nCo-authored-by: Other <test@example.com>\nAgent: ${agent}`), [
+      "coauthor-missing",
+    ]);
+    assert.deepEqual(check(`Change\n\nCo-authored-by: ${identity}\n\nAgent: ${agent}`), ["coauthor-missing"]);
+    assert.deepEqual(check(`Change\n\nCo-authored-by: ${identity} extra\nAgent: ${agent}`), ["coauthor-missing"]);
+  }
+  for (const agent of ["grok-friday", "human"])
+    assert.deepEqual(checkAgentTrailer({ message: `Change\n\nAgent: ${agent}` }), []);
 });
 
 test("range checks committer cutoff inclusively, skips merges, supports override and redacts errors", () => {
@@ -68,11 +101,20 @@ test("range checks committer cutoff inclusively, skips merges, supports override
     assert.equal(result.stdout, "");
     assert.equal(run(base, bad, { AGENT_TRAILER_SINCE: "2026-11-05T00:00:00Z" }).status, 0);
     assert.equal(run(base, bad, { AGENT_TRAILER_SINCE: "invalid" }).status, 1);
+    const missingCoauthor = commit("2026-11-04T06:00:00Z", "Change\n\nAgent: codex", [old]);
+    assert.equal(run(base, missingCoauthor).status, 1);
+    assert.equal(run(base, missingCoauthor).stderr.trim(), `${missingCoauthor.slice(0, 12)} coauthor-missing`);
+    const oldAgent = commit("2026-11-04T05:59:59Z", "Change\n\nAgent: codex", [base]);
+    assert.equal(run(base, oldAgent).status, 0);
     const good = commit("2026-11-04T06:00:01Z", valid.message, [old]);
     assert.equal(run(base, good).status, 0);
     const merge = commit("2026-11-04T06:00:02Z", "Merge without trailer", [good, old]);
     assert.equal(run(base, merge).status, 0);
     const file = join(cwd, "message");
+    writeFileSync(file, "Change\n\nAgent: codex");
+    const missing = spawnSync(process.execPath, [script, "--message-file", file], { cwd, env, encoding: "utf8" });
+    assert.equal(missing.status, 1);
+    assert.equal(missing.stderr.trim(), "HEAD coauthor-missing");
     writeFileSync(file, valid.message);
     assert.equal(spawnSync(process.execPath, [script, "--message-file", file], { cwd, env }).status, 0);
     assert.equal(

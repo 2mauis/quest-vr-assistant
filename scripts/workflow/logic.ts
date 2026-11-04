@@ -18,8 +18,9 @@ export function captureOptions(args: string[]) {
 }
 
 export function privacyFindings(text: string, words: string[] = []): string[] {
+  const allowedEmails = new Set(["noreply@anthropic.com", "noreply@openai.com"]);
+  const emails = [...text.matchAll(/\b[\w.+-]+@(?![\w.-]*example\.com\b)[\w.-]+\.[a-z]{2,}\b/gi)];
   const rules: [string, RegExp][] = [
-    ["email", /\b[\w.+-]+@(?![\w.-]*example\.com\b)[\w.-]+\.[a-z]{2,}\b/i],
     ["IPv4", /\b(?:\d{1,3}\.){3}\d{1,3}\b/],
     ["IPv6", /(?:\b[\da-f]{1,4}:){2,}[\da-f:]*|::[\da-f]{1,4}\b/i],
     ["internal domain", /\b[\w-]+(?:\.[\w-]+)*\.(?:local|internal|lan|home|localdomain|ts\.net)\b/i],
@@ -29,6 +30,7 @@ export function privacyFindings(text: string, words: string[] = []): string[] {
   const urlHosts = [...text.matchAll(/\b(?:https?|wss?):\/\/([\w.-]+)/gi)].map((m) => (m[1] ?? "").toLowerCase());
   const allowedHost = (host: string) => host === "localhost" || host === "example.com" || host.endsWith(".example.com");
   return [
+    ...(emails.some(([email]) => !allowedEmails.has(email)) ? ["email"] : []),
     ...rules.filter(([, rule]) => rule.test(text)).map(([name]) => name),
     ...(urlHosts.some((host) => !allowedHost(host)) ? ["hostname"] : []),
     ...words.filter((w) => w.trim() && text.toLowerCase().includes(w.toLowerCase())).map(() => "local denylist"),
@@ -96,6 +98,10 @@ export function checkAgentTrailer({
     codex: "Codex (for 2mauis)",
     "grok-friday": "Grok Bot Friday (for 2mauis)",
   };
+  const coauthors: Record<string, string> = {
+    "claude-code": "Claude <noreply@anthropic.com>",
+    codex: "Codex <noreply@openai.com>",
+  };
   const errors: string[] = [];
   const lines = message.trimEnd().split(/\r?\n/);
   const agents = lines.filter((line) => /^Agent\s*:/i.test(line));
@@ -108,6 +114,9 @@ export function checkAgentTrailer({
       const trailers = lines.slice(lastBlank + 1);
       if (lastBlank < 1 || !trailers.every((line) => /^[A-Za-z][A-Za-z-]*: .+$/.test(line)))
         errors.push("trailer-position");
+      const coauthor = coauthors[agent];
+      if (coauthor && !trailers.some((line) => /^Co-authored-by: (.+)$/i.exec(line)?.[1] === coauthor))
+        errors.push("coauthor-missing");
       if (authorName !== undefined && agent !== "human" && authorName !== names[agent]) errors.push("author-name");
     }
   }
