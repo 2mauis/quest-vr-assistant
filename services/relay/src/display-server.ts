@@ -86,6 +86,10 @@ export function createDisplayServer(config: DisplayConfig, hub: Hub, root: strin
       writeJson(res, ready ? 200 : 503, { ready, display_connected: hub.displayConnected() });
     } else if (pathname === "/api/display/config" && req.method === "GET") {
       writeJson(res, 200, { asset_origins: config.assetAllowedOrigins, presets: [...PRESETS] });
+    } else if (pathname === "/api/debug/build" && req.method === "GET") {
+      const file = resolveDisplayFile(root, "/build-info.json");
+      if (file) await serveFile(res, file, "GET");
+      else writeJson(res, 503, { error: "build_unavailable" });
     } else if (pathname === "/api/debug/interactions" && req.method === "GET") {
       writeJson(res, 200, { events: hub.interactions() });
     } else if (pathname === "/api/device/pair" || pathname === "/api/device/refresh") {

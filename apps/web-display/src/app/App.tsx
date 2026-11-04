@@ -1,3 +1,4 @@
+declare const __BUILD_INFO__: { build_id: string; built_at: string };
 import { Canvas } from "@react-three/fiber";
 import { XR, type XRStore } from "@react-three/xr";
 import { useEffect, useSyncExternalStore } from "react";
@@ -9,6 +10,8 @@ import { Hud } from "./Hud.tsx";
 /** The `data-*` attributes on <body> are the observable contract for tests and the native shell. */
 function publishBody(view: DisplayView): void {
   const { dataset } = document.body;
+  dataset.buildId = __BUILD_INFO__.build_id;
+  dataset.builtAt = __BUILD_INFO__.built_at;
   dataset.connected = view.connected ? "1" : "0";
   dataset.scene = view.sceneName;
   dataset.panels = String(view.state.panels.length);
@@ -40,6 +43,13 @@ export function App({
           <Stage state={view.state} reporter={session.reporter} onSelect={(id) => session.select(id)} />
         </XR>
       </Canvas>
+      <output
+        id="build-watermark"
+        hidden={new URLSearchParams(location.search).get("debug") !== "1"}
+        style={{ position: "fixed", bottom: 8, right: 8, color: "white", background: "black", zIndex: 10 }}
+      >
+        {__BUILD_INFO__.build_id} · {__BUILD_INFO__.built_at} · seq {view.seq} · {new Date().toISOString()}
+      </output>
       <Hud session={session} immersive={immersive} />
     </>
   );
