@@ -15,7 +15,7 @@ try:
     if pid <= 1: raise ValueError()
     os.kill(pid, 0)
     command = subprocess.check_output(['ps', '-p', str(pid), '-o', 'command='], text=True).strip()
-    marker = 'scripts/start-named-tunnel.mjs' if sys.argv[2] == 'tunnel' else 'services/relay/src/index.js'
+    marker = 'scripts/start-named-tunnel.mjs' if sys.argv[2] == 'tunnel' else 'services/relay/src/index.'
     assert 'node' in command and marker in command
 except (OSError, ValueError, AssertionError, subprocess.SubprocessError):
     sys.exit(1)
@@ -51,7 +51,7 @@ start_relay() {
     . "$CFG/local.env"
     set +a
     cd "$REPO"
-    launch "$CFG/relay.pid" "$LOG/relay.log" node services/relay/src/index.js
+    launch "$CFG/relay.pid" "$LOG/relay.log" node services/relay/src/index.ts
   )
   for i in $(seq 1 20); do
     if alive "$CFG/relay.pid" relay && curl --max-time 2 -fsS -o /dev/null http://localhost:8787/; then echo "中继已启动"; return; fi

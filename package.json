@@ -4,19 +4,58 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.18"
   },
   "scripts": {
-    "start": "node services/relay/src/index.js",
-    "demo": "node scripts/demo-tools.mjs",
-    "test": "node --test test/*.test.js",
-    "test:e2e": "playwright test"
+    "build:display": "vite build --config apps/web-display/vite.config.ts",
+    "start": "npm run build:display && node services/relay/src/index.ts",
+    "demo": "node scripts/demo-tools.ts",
+    "precheck:delivered": "npm run build:display",
+    "check:delivered": "node scripts/mcp-delivered-check.ts",
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web-display/tsconfig.json && tsc -p test/e2e/tsconfig.json",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "pretest": "npm run build:display",
+    "test": "node --test test/*.test.ts",
+    "pretest:e2e": "npm run build:display",
+    "test:e2e": "playwright test",
+    "codeql:local": "bash scripts/codeql-local.sh",
+    "quest-capture": "node scripts/quest-capture.ts",
+    "doctor": "node scripts/doctor.ts",
+    "privacy-scan": "node scripts/privacy-scan.ts",
+    "bugfix-evidence": "node scripts/bugfix-evidence.ts",
+    "merge-gate": "node scripts/merge-gate.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/node": "2.1.2",
+    "@modelcontextprotocol/server": "2.4.0",
+    "@react-three/drei": "10.7.9",
+    "@react-three/fiber": "9.8.2",
+    "@react-three/uikit": "1.0.78",
+    "@react-three/xr": "6.6.32",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "three": "0.170.0",
     "ws": "8.21.0"
   },
   "devDependencies": {
-    "@playwright/test": "1.56.1"
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.56.1",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.170.0",
+    "@types/ws": "8.18.2",
+    "@vitejs/plugin-react": "4.7.0",
+    "eslint": "10.14.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "6.4.1"
   }
 }

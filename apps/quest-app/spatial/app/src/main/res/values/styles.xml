@@ -8,4 +8,5 @@
     </style>
     <item name="workspace_controls" type="id" />
     <item name="workspace_content" type="id" />
+    <item name="display_web" type="id" />
 </resources>

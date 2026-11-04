@@ -1,0 +1,9 @@
+{
+  "name": "qvr-font-tools",
+  "private": true,
+  "description": "Pinned generator for the display page's MSDF fonts; not part of the app install.",
+  "type": "module",
+  "dependencies": {
+    "msdf-bmfont-xml": "2.8.0"
+  }
+}

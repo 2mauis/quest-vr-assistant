@@ -1,0 +1,21 @@
+# Shared by .github/workflows/codeql.yml and scripts/codeql-local.sh.
+name: quest-vr-assistant
+
+queries:
+  - uses: security-extended
+
+# Honoured by the languages analysed without a build (javascript-typescript,
+# actions). For java-kotlin CodeQL extracts what the Gradle build compiles, so
+# these paths cannot be filtered there; build outputs are not compiled sources.
+paths-ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/.gradle/**"
+  - "**/.kotlin/**"
+  - apps/web-display/public/fonts/**
+  - apps/web-display/src/model/sc-glyphs.ts
+  - test/fixtures/**
+  - test-results/**
+  - playwright-report/**
+  - blob-report/**

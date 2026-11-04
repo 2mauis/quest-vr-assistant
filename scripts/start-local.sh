@@ -12,4 +12,4 @@ for name in $required; do
   fi
 done
 
-exec node services/relay/src/index.js
+exec node services/relay/src/index.ts

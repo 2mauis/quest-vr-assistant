@@ -1,0 +1,579 @@
+{
+  "modernToolsList": {
+    "status": 200,
+    "body": {
+      "result": {
+        "tools": [
+          {
+            "name": "show_scene",
+            "description": "在已配对的显示端展示一个预设三维场景，或一个允许列表内的 glTF 模型。delivered 仅在显示端确认后为 true。",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "request_id",
+                "anchor"
+              ],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "preset": {
+                  "type": "string",
+                  "enum": [
+                    "grid",
+                    "orbit",
+                    "crystal",
+                    "pedestal"
+                  ]
+                },
+                "model_url": {
+                  "type": "string",
+                  "maxLength": 2048
+                },
+                "anchor": {
+                  "type": "string",
+                  "enum": [
+                    "world",
+                    "head",
+                    "floor",
+                    "front",
+                    "left",
+                    "right"
+                  ]
+                },
+                "pose": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "position": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        }
+                      }
+                    },
+                    "rotation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        }
+                      }
+                    },
+                    "scale": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "name": "render_panel",
+            "description": "在场景中显示一块纯文本信息面板。不执行面板正文。",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "request_id",
+                "panel_id",
+                "text"
+              ],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "panel_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20000
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "anchor": {
+                  "type": "string",
+                  "enum": [
+                    "world",
+                    "head",
+                    "floor",
+                    "front",
+                    "left",
+                    "right"
+                  ]
+                },
+                "pose": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "position": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        }
+                      }
+                    },
+                    "rotation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        }
+                      }
+                    },
+                    "scale": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "name": "clear",
+            "description": "按 scope 清除场景、指定面板或全部显示内容。scope 必须显式给出。",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "request_id",
+                "scope"
+              ],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "scene",
+                    "panel",
+                    "all"
+                  ]
+                },
+                "panel_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                }
+              }
+            }
+          }
+        ],
+        "resultType": "complete",
+        "ttlMs": 0,
+        "cacheScope": "private",
+        "_meta": {
+          "io.modelcontextprotocol/serverInfo": {
+            "name": "vr-mcp-server",
+            "version": "0.1.0"
+          }
+        }
+      },
+      "jsonrpc": "2.0",
+      "id": 1
+    }
+  },
+  "modernDiscover": {
+    "status": 200,
+    "body": {
+      "result": {
+        "supportedVersions": [
+          "2026-07-28"
+        ],
+        "capabilities": {
+          "tools": {
+            "listChanged": true
+          }
+        },
+        "instructions": "Tools show_scene, render_panel, and clear update one paired display. delivered is true only after that display acknowledges the sequence. A queued result has not been shown. This server is not a dialogue API.",
+        "resultType": "complete",
+        "ttlMs": 0,
+        "cacheScope": "private",
+        "_meta": {
+          "io.modelcontextprotocol/serverInfo": {
+            "name": "vr-mcp-server",
+            "version": "0.1.0"
+          }
+        }
+      },
+      "jsonrpc": "2.0",
+      "id": 2
+    }
+  },
+  "unsupportedVersion": {
+    "status": 400,
+    "body": {
+      "jsonrpc": "2.0",
+      "error": {
+        "code": -32022,
+        "message": "Unsupported protocol version: 1999-01-01",
+        "data": {
+          "supported": [
+            "2026-07-28"
+          ],
+          "requested": "1999-01-01"
+        }
+      },
+      "id": 4
+    }
+  },
+  "legacyInitialize": {
+    "status": 200,
+    "body": {
+      "result": {
+        "protocolVersion": "2025-11-25",
+        "capabilities": {
+          "tools": {
+            "listChanged": true
+          }
+        },
+        "serverInfo": {
+          "name": "vr-mcp-server",
+          "version": "0.1.0"
+        },
+        "instructions": "Tools show_scene, render_panel, and clear update one paired display. delivered is true only after that display acknowledges the sequence. A queued result has not been shown. This server is not a dialogue API."
+      },
+      "jsonrpc": "2.0",
+      "id": 1
+    }
+  },
+  "legacyToolsList": {
+    "status": 200,
+    "body": {
+      "result": {
+        "tools": [
+          {
+            "name": "show_scene",
+            "description": "在已配对的显示端展示一个预设三维场景，或一个允许列表内的 glTF 模型。delivered 仅在显示端确认后为 true。",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "request_id",
+                "anchor"
+              ],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "preset": {
+                  "type": "string",
+                  "enum": [
+                    "grid",
+                    "orbit",
+                    "crystal",
+                    "pedestal"
+                  ]
+                },
+                "model_url": {
+                  "type": "string",
+                  "maxLength": 2048
+                },
+                "anchor": {
+                  "type": "string",
+                  "enum": [
+                    "world",
+                    "head",
+                    "floor",
+                    "front",
+                    "left",
+                    "right"
+                  ]
+                },
+                "pose": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "position": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        }
+                      }
+                    },
+                    "rotation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        }
+                      }
+                    },
+                    "scale": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "name": "render_panel",
+            "description": "在场景中显示一块纯文本信息面板。不执行面板正文。",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "request_id",
+                "panel_id",
+                "text"
+              ],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "panel_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 20000
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "anchor": {
+                  "type": "string",
+                  "enum": [
+                    "world",
+                    "head",
+                    "floor",
+                    "front",
+                    "left",
+                    "right"
+                  ]
+                },
+                "pose": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "position": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -10,
+                          "maximum": 10
+                        }
+                      }
+                    },
+                    "rotation": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "x",
+                        "y",
+                        "z"
+                      ],
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "y": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        },
+                        "z": {
+                          "type": "number",
+                          "minimum": -360,
+                          "maximum": 360
+                        }
+                      }
+                    },
+                    "scale": {
+                      "type": "number",
+                      "minimum": 0.1,
+                      "maximum": 3
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "name": "clear",
+            "description": "按 scope 清除场景、指定面板或全部显示内容。scope 必须显式给出。",
+            "inputSchema": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "request_id",
+                "scope"
+              ],
+              "properties": {
+                "request_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                },
+                "scope": {
+                  "type": "string",
+                  "enum": [
+                    "scene",
+                    "panel",
+                    "all"
+                  ]
+                },
+                "panel_id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "jsonrpc": "2.0",
+      "id": 2
+    }
+  }
+}

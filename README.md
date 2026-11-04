@@ -1,8 +1,15 @@
 # Quest 原生 MR 空间助手
 
-> 当前检查点：`0.4-spatial` 原生工作区实机联调，2026-11-01。下文区分已完成、待测试与尚未实现；详细证据见 [实机记录](docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
+<!-- Relative badge links resolve against blob/<branch>/; this branch name contains one "/", so they need ../../../ here and ../../ on main. -->
+[![codeql](../../../actions/workflows/codeql.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/codeql.yml)
+[![ci](../../../actions/workflows/ci.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/ci.yml)
+[![quest-apk](../../../actions/workflows/apk-probe.yml/badge.svg?branch=refactor/display-two-track-opus-2026-11-02)](../../../actions/workflows/apk-probe.yml)
 
-已确认的主线是 **Quest 本机 MCP + 自研原生 MR App + 同一 App 入口的 Grok 官方网页**。自研 App 管理空间面板、状态、透视视觉联动与连接就绪；网页作为独立页面，复用官方账号、Bot、对话和语音，不另接模型 API 或重做语音。
+> 当前检查点：双轨显示重构，2026-11-01。桌面浏览器可以驱动新的网页显示；头显安装与语音闭环仍待机主实机验收。结构见 [双轨架构](docs/07-architecture-two-track.md)。历史实机证据见 [实机记录](docs/03-validation-baseline.md#原生工作区联调与宽屏共存)。
+
+显示分成两条轨道。**网页显示**用 React Three Fiber、`@react-three/xr`、`@react-three/uikit` 和 `@react-three/drei` 呈现预设、面板、glTF 和 WebXR。**原生壳**用 Spatial SDK 把 Grok 官方网页（Custom Tabs）和这块网页显示（WebView 面板）放在一起。中继、三个工具的名称和输入 schema、`seq` / ACK / `delivered` 保持不变。不另接模型 API，不重做语音。
+
+Quick Tunnel 继续作为这条重构的公网连接。本分支不修改 DNS、WAF、账号或具名 Tunnel。具名 Tunnel 的下一步需要机主批准。
 
 **当前阶段 1 路径：**工具客户端 → 固定具名 Tunnel 的 HTTPS `/mcp` → 开发宿主上的 Node 中继 → Quest 原生显示客户端。三个工具已从调试客户端打通；Grok 网页语音触发同一路径仍待验收。
 
@@ -18,7 +25,9 @@
 - **交互实现与部分验证：**面板抓取边缘、缩放按钮、模型碰撞体及抓取组件已实现。设备上的 XR 合成输入验证了面板拖动、模型手势抓取和缩放；去掉模拟输入层后已捕获实体右手柄的面板 `Hover` / `Select` 与缩放记录。**实体手柄直接抓取模型仍未通过。**
 - **配对与恢复：**短期会话和独立恢复授权经 Android Keystore 加密保存。原签名更新、App 重开、短期会话过期续期，以及 USB 显示通道断开 / 恢复已验证无需重新配对；主动移除连接、授权失效和设备接管保留停止边界。
 - **Tunnel 与构建：**固定具名 Tunnel 已接现有中继，`qvr` 使用该入口。早期 APK 内置 Tunnel 探针已通过 App UID、四条连接、外部健康回环及限时生命周期验证，但尚未成为正式常驻服务。GitHub Actions 已有原生 APK 与中继检查流程；本次提交尚不代表新的远端构建通过。
-- **本轮检查：**原生核心 12 项、中继 22 项、桌面浏览器 6 项通过；原生 APK 编译、签名、16 KiB 对齐、预设和网页入口检查通过。当前实机诊断包不携带 XR Operator 输入层。
+- **本轮检查（桌面与 CI）：**`npm run typecheck`、`npm run lint`、`npm run format:check`、`npm test`、`npm run test:e2e` 与 `npm run check:delivered`（官方 MCP 客户端 + 无头显示页，三个工具均 `delivered: true`）；原生 `ktlintCheck`、核心单测、APK 编译、签名、16 KiB 对齐、无预设和网页入口检查。逐项质量问题与处理见 [质量审计](docs/09-quality-audit.md)。当前实机诊断包不携带 XR Operator 输入层。
+
+以上原生显示、交互和恢复的实机结果来自已删除的 Kotlin 自绘与原生 WebSocket 路径。双轨的 WebView 薄壳与页面内回执尚未在头显运行，不能沿用这些结论。
 
 构建、同签名更新、CI 临时签名限制和功能边界见 [原生工程 README](apps/quest-app/spatial/README.md)。
 
@@ -45,6 +54,10 @@ Quest 本机 MCP 正式服务、正式 Tunnel 生命周期 / 自启、相机新�
 4. [实现中的协议基线](docs/04-protocol-baseline.md)
 5. [已确认决策及待验证项](docs/05-decisions.md)
 6. [原生空间评审与精炼计划](docs/06-native-spatial-review.md)
+7. [双轨显示架构](docs/07-architecture-two-track.md)
+8. [具名 Tunnel 计划（未执行）](docs/08-named-tunnel-plan.md)
+9. [双轨重构质量审计与处理](docs/09-quality-audit.md)
+10. [CodeQL 代码扫描与本地运行](docs/10-codeql.md)
 
 正式 Cloudflare 入口的当前状态、env / 令牌分工及切换步骤见[具名 Tunnel 配置](config/cloudflared/README.md)。已验证固定入口的鉴权 / 工具发现与路径隔离；Grok 连接器与新原生显示的联合验收另行记录。
 
